@@ -59,7 +59,7 @@
             // radioButtonClone
             //
             this.radioButtonClone.AutoSize = true;
-            this.radioButtonClone.Location = new System.Drawing.Point(20, 6);
+            this.radioButtonClone.Location = new System.Drawing.Point(20, 8);
             this.radioButtonClone.Name = "radioButtonClone";
             this.radioButtonClone.Size = new System.Drawing.Size(157, 17);
             this.radioButtonClone.TabIndex = 99;
@@ -119,15 +119,15 @@
             this.textBoxClonePath.AllowDrop = true;
             this.textBoxClonePath.Location = new System.Drawing.Point(168, 49);
             this.textBoxClonePath.Name = "textBoxClonePath";
-            this.textBoxClonePath.Size = new System.Drawing.Size(166, 20);
+            this.textBoxClonePath.Size = new System.Drawing.Size(163, 20);
             this.textBoxClonePath.TabIndex = 5;
             this.textBoxClonePath.Text = "";
             //
             // buttonInstancePathSelection
             //
-            this.buttonInstancePathSelection.Location = new System.Drawing.Point(334, 49);
+            this.buttonInstancePathSelection.Location = new System.Drawing.Point(331, 48);
             this.buttonInstancePathSelection.Name = "buttonInstancePathSelection";
-            this.buttonInstancePathSelection.Size = new System.Drawing.Size(52, 20);
+            this.buttonInstancePathSelection.Size = new System.Drawing.Size(55, 22);
             this.buttonInstancePathSelection.TabIndex = 6;
             this.buttonInstancePathSelection.Text = "Select...";
             this.buttonInstancePathSelection.UseVisualStyleBackColor = true;
@@ -150,7 +150,7 @@
             // radioButtonFake
             //
             this.radioButtonFake.AutoSize = true;
-            this.radioButtonFake.Location = new System.Drawing.Point(20, 123);
+            this.radioButtonFake.Location = new System.Drawing.Point(20, 125);
             this.radioButtonFake.Name = "radioButtonFake";
             this.radioButtonFake.Size = new System.Drawing.Size(139, 17);
             this.radioButtonFake.TabIndex = 8;
@@ -225,14 +225,14 @@
             //
             this.textBoxNewPath.Location = new System.Drawing.Point(181, 251);
             this.textBoxNewPath.Name = "textBoxNewPath";
-            this.textBoxNewPath.Size = new System.Drawing.Size(166, 20);
+            this.textBoxNewPath.Size = new System.Drawing.Size(163, 20);
             this.textBoxNewPath.TabIndex = 16;
             //
             // buttonPathBrowser
             //
-            this.buttonPathBrowser.Location = new System.Drawing.Point(347, 251);
+            this.buttonPathBrowser.Location = new System.Drawing.Point(344, 250);
             this.buttonPathBrowser.Name = "buttonPathBrowser";
-            this.buttonPathBrowser.Size = new System.Drawing.Size(52, 20);
+            this.buttonPathBrowser.Size = new System.Drawing.Size(55, 22);
             this.buttonPathBrowser.TabIndex = 17;
             this.buttonPathBrowser.Text = "Select...";
             this.buttonPathBrowser.UseVisualStyleBackColor = true;
