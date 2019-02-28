@@ -772,7 +772,7 @@ namespace CKAN
                 // and the 2nd/3rd are handled by UpdateModsList().
                 if (col.Index > 2)
                 {
-                    col.Visible = configuration.VisibleColumnNames.Contains(col.Name);
+                    col.Visible = !configuration.HiddenColumnNames.Contains(col.Name);
                 }
             }
 

@@ -34,7 +34,7 @@ namespace CKAN
         public bool SortDescending = false;
 
         [XmlArray, XmlArrayItem(ElementName = "ColumnName")]
-        public List<string> VisibleColumnNames = new List<string>();
+        public List<string> HiddenColumnNames = new List<string>();
 
         /// <summary>
         /// Set whether a column name is in the visible list
@@ -43,13 +43,13 @@ namespace CKAN
         /// <param name="vis">true if visible, false if hidden</param>
         public void SetColumnVisible(string name, bool vis)
         {
-            if (!vis)
+            if (vis)
             {
-                VisibleColumnNames.RemoveAll(n => n == name);
+                HiddenColumnNames.RemoveAll(n => n == name);
             }
-            else if (!VisibleColumnNames.Contains(name))
+            else if (!HiddenColumnNames.Contains(name))
             {
-                VisibleColumnNames.Add(name);
+                HiddenColumnNames.Add(name);
             }
         }
 
@@ -120,21 +120,6 @@ namespace CKAN
                 try
                 {
                     configuration = (Configuration) serializer.Deserialize(stream);
-                    // Set default list of columns if missing
-                    if (configuration.VisibleColumnNames == null || configuration.VisibleColumnNames.Count < 1)
-                    {
-                        configuration.VisibleColumnNames = new List<string>() {
-                            "ModName",
-                            "Author",
-                            "InstalledVersion",
-                            "LatestVersion",
-                            "KSPCompatibility",
-                            "SizeCol",
-                            "InstallDate",
-                            "DownloadCount",
-                            "Description"
-                        };
-                    }
                 }
                 catch (System.Exception e)
                 {
