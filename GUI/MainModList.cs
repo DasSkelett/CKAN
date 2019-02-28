@@ -368,18 +368,19 @@ namespace CKAN
                 // Start from scrap: clear the entire item list, then add all options again.
                 ModListHeaderContextMenuStrip.Items.Clear();
 
-                // If a column is currently visible -> the button appears checked (and the other way round)
-                ModListHeaderContextMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripButton[] {
-                    new ToolStripButton() { Name = "Name",             Text = "Name",              Checked = ModList.Columns[3].Visible},
-                    new ToolStripButton() { Name = "Author",           Text = "Author",            Checked = ModList.Columns[4].Visible},
-                    new ToolStripButton() { Name = "InstalledVersion", Text = "Installed version", Checked = ModList.Columns[5].Visible},
-                    new ToolStripButton() { Name = "LatestVersion",    Text = "Latest version",    Checked = ModList.Columns[6].Visible},
-                    new ToolStripButton() { Name = "MaxKSP",           Text = "Max KSP version",   Checked = ModList.Columns[7].Visible},
-                    new ToolStripButton() { Name = "Download",         Text = "Download size",     Checked = ModList.Columns[8].Visible},
-                    new ToolStripButton() { Name = "InstallDate",      Text = "Install Date",      Checked = ModList.Columns[9].Visible},
-                    new ToolStripButton() { Name = "Downloads",        Text = "Download count",    Checked = ModList.Columns[10].Visible},
-                    new ToolStripButton() { Name = "Description",      Text = "Description",       Checked = ModList.Columns[11].Visible}
-                });
+                ModListHeaderContextMenuStrip.Items.AddRange(
+                    ModList.Columns.Cast<DataGridViewColumn>()
+                    .Where(col => col.Index > 2)
+                    .Select(col => new ToolStripMenuItem()
+                    {
+                        Name    = col.Name,
+                        Text    = col.HeaderText,
+                        Checked = col.Visible,
+                        Tag     = col
+                    })
+                    .ToArray()
+                );
+
                 // Show the context menu on cursor position.
                 ModListHeaderContextMenuStrip.Show(Cursor.Position);
             }
@@ -391,28 +392,17 @@ namespace CKAN
         private void ModListHeaderContextMenuStrip_ItemClicked(object sender, System.Windows.Forms.ToolStripItemClickedEventArgs e)
         {
             // ClickedItem is of type ToolStripItem, we need ToolStripButton.
-            var clickedItem = (ToolStripButton)e.ClickedItem;
+            ToolStripMenuItem  clickedItem = e.ClickedItem    as ToolStripMenuItem;
+            DataGridViewColumn col         = clickedItem?.Tag as DataGridViewColumn;
 
-            // The index of the column of ALL available columns (0 - 11).
-            // Plus 3 because the first 3 columns have no according buttton.
-            int index = ModListHeaderContextMenuStrip.Items.IndexOf(clickedItem) + 3;
-
-            // User unchecks the column
-            // Hide / unhide the "clear changeset" checkbox if it is the first column
-            if (clickedItem.Checked)
+            if (col != null)
             {
-                ModList.Columns[index].Visible = false;
-                InstallAllCheckbox.Visible &= index != 0;
+                configuration.VisibleColumns[col.Index] = col.Visible = !clickedItem.Checked;
+                if (col.Index == 0)
+                {
+                    InstallAllCheckbox.Visible = col.Visible;
+                }
             }
-            // User checks the column
-            else
-            {
-                ModList.Columns[index].Visible = true;
-                InstallAllCheckbox.Visible |= index == 0;
-            }
-
-            // Save it to the GUIconfig
-            configuration.VisibleColumns[index-3] = !clickedItem.Checked;
         }
 
         /// <summary>
