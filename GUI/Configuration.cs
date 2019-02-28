@@ -124,9 +124,6 @@ namespace CKAN
                     if (configuration.VisibleColumnNames == null || configuration.VisibleColumnNames.Count < 1)
                     {
                         configuration.VisibleColumnNames = new List<string>() {
-                            "Installed",
-                            "UpdateCol",
-                            "ReplaceCol",
                             "ModName",
                             "Author",
                             "InstalledVersion",
