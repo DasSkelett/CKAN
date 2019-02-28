@@ -245,6 +245,7 @@ namespace CKAN
             AddLogMessage("Updating filters...");
 
             var has_any_updates = gui_mods.Any(mod => mod.HasUpdate);
+            var has_any_replacements = gui_mods.Any(mod => mod.HasReplacement);
 
             //TODO Consider using smart enumeration pattern so stuff like this is easier
             Util.Invoke(menuStrip2, () =>
@@ -272,6 +273,14 @@ namespace CKAN
             });
 
             UpdateFilters(this);
+
+            // Hide update and replacement columns if not needed.
+            // Write it to the configuration, else they are hidden agian after a filter change.
+            // After the update / replacement, they are hidden again.
+            ModList.Columns[1].Visible = has_any_updates;
+            configuration.VisibleColumns[1] = has_any_updates;
+            ModList.Columns[2].Visible = has_any_replacements;
+            configuration.VisibleColumns[2] = has_any_replacements;
 
             AddLogMessage("Updating tray...");
             UpdateTrayInfo();
@@ -334,20 +343,76 @@ namespace CKAN
         }
 
         /// <summary>
-        /// Programmatic implementation of row sorting by columns.
+        /// Called when there's a click on the modlist header row.
+        /// Handles sorting and the header right click context menu.
         /// </summary>
         private void ModList_HeaderMouseClick(object sender, DataGridViewCellMouseEventArgs e)
         {
-            var new_sort_column = ModList.Columns[e.ColumnIndex];
-            var current_sort_column = ModList.Columns[configuration.SortByColumnIndex];
+            // Left click -> sort by new column / change sorting direction.
+            if (e.Button == MouseButtons.Left)
+            {
+                var new_sort_column = ModList.Columns [e.ColumnIndex];
+                var current_sort_column = ModList.Columns [configuration.SortByColumnIndex];
 
-            // Reverse the sort order if the current sorting column is clicked again.
-            configuration.SortDescending = new_sort_column == current_sort_column && !configuration.SortDescending;
+                // Reverse the sort order if the current sorting column is clicked again.
+                configuration.SortDescending = new_sort_column == current_sort_column && !configuration.SortDescending;
 
-            // Reset the glyph.
-            current_sort_column.HeaderCell.SortGlyphDirection = SortOrder.None;
-            configuration.SortByColumnIndex = new_sort_column.Index;
-            UpdateFilters(this);
+                // Reset the glyph.
+                current_sort_column.HeaderCell.SortGlyphDirection = SortOrder.None;
+                configuration.SortByColumnIndex = new_sort_column.Index;
+                UpdateFilters(this);
+            }
+            // Right click -> Bring up context menu to change visibility of columns.
+            else if (e.Button == MouseButtons.Right)
+            {
+                // Start from scrap: clear the entire item list, then add all options again.
+                ModListHeaderContextMenuStrip.Items.Clear();
+
+                // If a column is currently visible -> the button appears checked (and the other way round)
+                ModListHeaderContextMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripButton[] {
+                    new ToolStripButton() { Name = "Name",             Text = "Name",              Checked = ModList.Columns[3].Visible},
+                    new ToolStripButton() { Name = "Author",           Text = "Author",            Checked = ModList.Columns[4].Visible},
+                    new ToolStripButton() { Name = "InstalledVersion", Text = "Installed version", Checked = ModList.Columns[5].Visible},
+                    new ToolStripButton() { Name = "LatestVersion",    Text = "Latest version",    Checked = ModList.Columns[6].Visible},
+                    new ToolStripButton() { Name = "MaxKSP",           Text = "Max KSP version",   Checked = ModList.Columns[7].Visible},
+                    new ToolStripButton() { Name = "Download",         Text = "Download size",     Checked = ModList.Columns[8].Visible},
+                    new ToolStripButton() { Name = "InstallDate",      Text = "Install Date",      Checked = ModList.Columns[9].Visible},
+                    new ToolStripButton() { Name = "Downloads",        Text = "Download count",    Checked = ModList.Columns[10].Visible},
+                    new ToolStripButton() { Name = "Description",      Text = "Description",       Checked = ModList.Columns[11].Visible}
+                });
+                // Show the context menu on cursor position.
+                ModListHeaderContextMenuStrip.Show(Cursor.Position);
+            }
+        }
+
+        /// <summary>
+        /// Called if a ToolStripButton of the header context menu is pressed.
+        /// </summary>
+        private void ModListHeaderContextMenuStrip_ItemClicked(object sender, System.Windows.Forms.ToolStripItemClickedEventArgs e)
+        {
+            // ClickedItem is of type ToolStripItem, we need ToolStripButton.
+            var clickedItem = (ToolStripButton)e.ClickedItem;
+
+            // The index of the column of ALL available columns (0 - 11).
+            // Plus 3 because the first 3 columns have no according buttton.
+            int index = ModListHeaderContextMenuStrip.Items.IndexOf(clickedItem) + 3;
+
+            // User unchecks the column
+            // Hide / unhide the "clear changeset" checkbox if it is the first column
+            if (clickedItem.Checked)
+            {
+                ModList.Columns[index].Visible = false;
+                InstallAllCheckbox.Visible &= index != 0;
+            }
+            // User checks the column
+            else
+            {
+                ModList.Columns[index].Visible = true;
+                InstallAllCheckbox.Visible |= index == 0;
+            }
+
+            // Save it to the GUIconfig
+            configuration.VisibleColumns[index-3] = !clickedItem.Checked;
         }
 
         /// <summary>
