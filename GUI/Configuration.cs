@@ -1,6 +1,7 @@
 ﻿using System.Drawing;
 using System.IO;
 using System.Xml.Serialization;
+using System.Collections.Generic;
 
 namespace CKAN
 {
@@ -32,7 +33,25 @@ namespace CKAN
         public int SortByColumnIndex = 2;
         public bool SortDescending = false;
 
-        public bool[] VisibleColumns = { true, true, true, true, true, true, true, true, true };
+        [XmlArray, XmlArrayItem(ElementName = "ColumnName")]
+        public List<string> VisibleColumnNames = new List<string>();
+
+        /// <summary>
+        /// Set whether a column name is in the visible list
+        /// </summary>
+        /// <param name="name">Name property of the column</param>
+        /// <param name="vis">true if visible, false if hidden</param>
+        public void SetColumnVisible(string name, bool vis)
+        {
+            if (!vis)
+            {
+                VisibleColumnNames.RemoveAll(n => n == name);
+            }
+            else if (!VisibleColumnNames.Contains(name))
+            {
+                VisibleColumnNames.Add(name);
+            }
+        }
 
         private string path = "";
 
@@ -101,6 +120,24 @@ namespace CKAN
                 try
                 {
                     configuration = (Configuration) serializer.Deserialize(stream);
+                    // Set default list of columns if missing
+                    if (configuration.VisibleColumnNames == null || configuration.VisibleColumnNames.Count < 1)
+                    {
+                        configuration.VisibleColumnNames = new List<string>() {
+                            "Installed",
+                            "UpdateCol",
+                            "ReplaceCol",
+                            "ModName",
+                            "Author",
+                            "InstalledVersion",
+                            "LatestVersion",
+                            "KSPCompatibility",
+                            "SizeCol",
+                            "InstallDate",
+                            "DownloadCount",
+                            "Description"
+                        };
+                    }
                 }
                 catch (System.Exception e)
                 {
