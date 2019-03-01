@@ -41,7 +41,7 @@ namespace CKAN
         /// </summary>
         /// <param name="name">Name property of the column</param>
         /// <param name="vis">true if visible, false if hidden</param>
-        public void SetColumnVisible(string name, bool vis)
+        public void SetColumnVisibility(string name, bool vis)
         {
             if (vis)
             {

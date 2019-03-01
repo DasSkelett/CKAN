@@ -396,7 +396,7 @@ namespace CKAN
             if (col != null)
             {
                 col.Visible = !clickedItem.Checked;
-                configuration.SetColumnVisible(col.Name, !clickedItem.Checked);
+                configuration.SetColumnVisibility(col.Name, !clickedItem.Checked);
                 if (col.Index == 0)
                 {
                     InstallAllCheckbox.Visible = col.Visible;
