@@ -195,20 +195,24 @@ namespace Tests.Core
         }
 
         [Test]
-        public void FakeInstance_ValidArgumentsWithDLC_ManagerHasValidInstance()
+        public void FakeInstance_ValidArgumentsWithDLCs_ManagerHasValidInstance()
         {
             string name = "testname";
-            string dlcVersion = "1.1.0";
+            string mhVersion = "1.1.0";
+            string bgVersion = "1.0.0";
             string tempdir = TestData.NewTempDir();
-            CKAN.Versioning.KspVersion version = CKAN.Versioning.KspVersion.Parse("1.6.0");
+            CKAN.Versioning.KspVersion version = CKAN.Versioning.KspVersion.Parse("1.7.1");
 
-            manager.FakeInstance(name, tempdir, version, dlcVersion);
+            manager.FakeInstance(name, tempdir, version, new string[] { mhVersion, bgVersion });
             CKAN.KSP newKSP = new CKAN.KSP(tempdir, name, new NullUser());
-            CKAN.DLC.MakingHistoryDlcDetector detector = new CKAN.DLC.MakingHistoryDlcDetector();
+            CKAN.DLC.MakingHistoryDlcDetector mhDetector = new CKAN.DLC.MakingHistoryDlcDetector();
+            CKAN.DLC.BreakingGroundDlcDetector bgDetector = new CKAN.DLC.BreakingGroundDlcDetector();
 
             Assert.IsTrue(manager.HasInstance(name));
-            Assert.IsTrue(detector.IsInstalled(newKSP, out string _dump, out CKAN.Versioning.UnmanagedModuleVersion dlcVersionObject));
-            Assert.IsTrue(dlcVersionObject.ToString().Contains(dlcVersion));
+            Assert.IsTrue(mhDetector.IsInstalled(newKSP, out string _, out CKAN.Versioning.UnmanagedModuleVersion detectedMhVersion));
+            Assert.IsTrue(bgDetector.IsInstalled(newKSP, out string _, out CKAN.Versioning.UnmanagedModuleVersion detectedBgVersion));
+            Assert.IsTrue(detectedMhVersion.IsEqualTo(new CKAN.Versioning.ModuleVersion(mhVersion)));
+            Assert.IsTrue(detectedBgVersion.IsEqualTo(new CKAN.Versioning.ModuleVersion(bgVersion)));
 
             // Tidy up.
             CKAN.RegistryManager.Instance(newKSP).ReleaseLock();

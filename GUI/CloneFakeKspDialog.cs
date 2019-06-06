@@ -200,7 +200,9 @@ namespace CKAN
             else if (radioButtonFake.Checked)
             {
                 Versioning.KspVersion kspVersion = Versioning.KspVersion.Parse(comboBoxKspVersion.Text);
-                string dlcVersion = textBoxDlcVersion.Text;
+                string[] dlcVersions = new string[2];
+                dlcVersions[0] = textBoxMHDlcVersion.Text;
+                dlcVersions[1] = textBoxBGDlcVersion.Text;
 
                 user.RaiseMessage(Properties.Resources.CloneFakeKspDialogCreatingInstance);
 
@@ -208,7 +210,7 @@ namespace CKAN
                 {
                     await Task.Run(() =>
                     {
-                        manager.FakeInstance(newName, newPath, kspVersion, dlcVersion);
+                        manager.FakeInstance(newName, newPath, kspVersion, dlcVersions);
                     });
                 }
                 catch (BadInstallLocationKraken)
@@ -247,7 +249,7 @@ namespace CKAN
             }
         }
 
-        private async void buttonCancel_Click(object sender, EventArgs e)
+        private void buttonCancel_Click(object sender, EventArgs e)
         {
             DialogResult = DialogResult.Cancel;
             this.Close();

@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Transactions;
+using ChinhDo.Transactions;
 using CKAN.Versioning;
 using log4net;
 
@@ -200,67 +202,95 @@ namespace CKAN
                 throw e;
             }
         }
-
         /// <summary>
         /// Create a new fake KSP instance
         /// </summary>
         /// <param name="new_name">The name for the new instance.</param>
         /// <param name="new_path">The loaction of the new instance.</param>
         /// <param name="version">The version of the new instance. Should have a build number.</param>
-        /// <param name="dlcVersion">The version of the DLC. Null if DLC should be faked.</param>
-        public void FakeInstance(string new_name, string new_path, KspVersion version, string dlcVersion = null)
+        /// <param name="dlcVersions">The versions of the DLCs. Null / empty strings if DLCs should not be faked.</param>
+        public void FakeInstance(string new_name, string new_path, KspVersion version, string[] dlcVersions = null)
         {
-            if (!version.InBuildMap())
+            TxFileManager file_transaction = new TxFileManager();
+            using (TransactionScope transaction = CkanTransaction.CreateTransactionScope())
             {
-                throw new IncorrectKSPVersionKraken(String.Format("The specified KSP version is not a known version: {0}", version.ToString()));
-            }
-            if (Directory.Exists(new_path) && (Directory.GetFiles(new_path).Length != 0 || Directory.GetDirectories(new_path).Length != 0))
-            {
-                throw new BadInstallLocationKraken("The specified folder already exists and is not empty.");
-            }
-
-            try
-            {
-                log.DebugFormat("Creating folder structure and text files at {0} for KSP version {1}", Path.GetFullPath(new_path), version.ToString());
-
-                // Create a KSP root directory, containing a GameData folder, a buildID.txt/buildID64.txt and a readme.txt
-                Directory.CreateDirectory(new_path);
-                Directory.CreateDirectory(Path.Combine(new_path, "GameData"));
-                Directory.CreateDirectory(Path.Combine(new_path, "Ships"));
-                Directory.CreateDirectory(Path.Combine(new_path, "Ships", "VAB"));
-                Directory.CreateDirectory(Path.Combine(new_path, "Ships", "SPH"));
-                Directory.CreateDirectory(Path.Combine(new_path, "Ships", "@thumbs"));
-                Directory.CreateDirectory(Path.Combine(new_path, "Ships", "@thumbs", "VAB"));
-                Directory.CreateDirectory(Path.Combine(new_path, "Ships", "@thumbs", "SPH"));
-
-                // Don't write the buildID.txts if we have no build, otherwise it would be -1.
-                if (version.IsBuildDefined)
+                if (!version.InBuildMap())
                 {
-                    File.WriteAllText(Path.Combine(new_path, "buildID.txt"), String.Format("build id = {0}", version.Build));
-                    File.WriteAllText(Path.Combine(new_path, "buildID64.txt"), String.Format("build id = {0}", version.Build));
+                    throw new IncorrectKSPVersionKraken(String.Format("The specified KSP version is not a known version: {0}", version.ToString()));
+                }
+                if (Directory.Exists(new_path) && (Directory.GetFiles(new_path).Length != 0 || Directory.GetDirectories(new_path).Length != 0))
+                {
+                    throw new BadInstallLocationKraken("The specified folder already exists and is not empty.");
                 }
 
-                // Create the readme.txt WITHOUT build number.
-                File.WriteAllText(Path.Combine(new_path, "readme.txt"), String.Format("Version {0}", new KspVersion(version.Major, version.Minor, version.Patch).ToString()));
-
-                // If a installed DLC should be simulated, we create the needed folder structure and the readme.txt
-                if (!String.IsNullOrEmpty(dlcVersion) && version.CompareTo(new KspVersion(1, 4, 0)) >= 0)
+                try
                 {
-                    Directory.CreateDirectory(Path.Combine(new_path, "GameData", "SquadExpansion", "MakingHistory"));
-                    File.WriteAllText(
-                        Path.Combine(new_path, "GameData", "SquadExpansion", "MakingHistory", "readme.txt"),
-                        String.Format("Version {0}", dlcVersion));
-                }
+                    log.DebugFormat("Creating folder structure and text files at {0} for KSP version {1}", Path.GetFullPath(new_path), version.ToString());
 
-                // Add the new instance to the registry
-                KSP new_instance = new KSP(new_path, new_name, User);
-                AddInstance(new_instance);
-            }
-            // Thrown by AddInstance() if created instance is not valid.
-            // Thrown f.e. if a write operation didn't complete for unknown reasons.
-            catch (NotKSPDirKraken kraken)
-            {
-                throw kraken;
+                    // Create a KSP root directory, containing a GameData folder, a buildID.txt/buildID64.txt and a readme.txt
+                    file_transaction.CreateDirectory(new_path);
+                    file_transaction.CreateDirectory(Path.Combine(new_path, "GameData"));
+                    file_transaction.CreateDirectory(Path.Combine(new_path, "Ships"));
+                    file_transaction.CreateDirectory(Path.Combine(new_path, "Ships", "VAB"));
+                    file_transaction.CreateDirectory(Path.Combine(new_path, "Ships", "SPH"));
+                    file_transaction.CreateDirectory(Path.Combine(new_path, "Ships", "@thumbs"));
+                    file_transaction.CreateDirectory(Path.Combine(new_path, "Ships", "@thumbs", "VAB"));
+                    file_transaction.CreateDirectory(Path.Combine(new_path, "Ships", "@thumbs", "SPH"));
+
+                    // Don't write the buildID.txts if we have no build, otherwise it would be -1.
+                    if (version.IsBuildDefined)
+                    {
+                        file_transaction.WriteAllText(Path.Combine(new_path, "buildID.txt"), String.Format("build id = {0}", version.Build));
+                        file_transaction.WriteAllText(Path.Combine(new_path, "buildID64.txt"), String.Format("build id = {0}", version.Build));
+                    }
+
+                    // Create the readme.txt WITHOUT build number.
+                    file_transaction.WriteAllText(Path.Combine(new_path, "readme.txt"), String.Format("Version {0}", new KspVersion(version.Major, version.Minor, version.Patch).ToString()));
+
+                    // If a installed DLC should be simulated, we create the needed folder structure and the readme.txt.
+                    if (dlcVersions != null)
+                    {
+                        // MakingHistory
+                        if (String.IsNullOrEmpty(dlcVersions[0])) { }
+                        else if (version.CompareTo(new KspVersion(1, 4, 0)) >= 0)
+                        {
+                            string dlcDir = Path.Combine(new_path, new DLC.MakingHistoryDlcDetector().InstallPath());
+                            file_transaction.CreateDirectory(dlcDir);
+                            file_transaction.WriteAllText(
+                                Path.Combine(dlcDir, "readme.txt"),
+                                String.Format("Version {0}", dlcVersions[0]));
+                        }
+                        else
+                        {
+                            throw new IncorrectKSPVersionKraken("KSP version 1.4.0 or above is needed for Making History DLC.");
+                        }
+                        //BreakingGround
+                        if (dlcVersions.Length < 1 || String.IsNullOrEmpty(dlcVersions[1])) { }
+                        else if (version.CompareTo(new KspVersion(1, 7, 1)) >= 0)
+                        {
+                            string dlcDir = Path.Combine(new_path, new DLC.BreakingGroundDlcDetector().InstallPath());
+                            file_transaction.CreateDirectory(dlcDir);
+                            file_transaction.WriteAllText(
+                                Path.Combine(dlcDir, "readme.txt"),
+                                String.Format("Version {0}", dlcVersions[1]));
+                        }
+                        else
+                        {
+                            throw new IncorrectKSPVersionKraken("KSP version 1.7.1 or above is needed for Breaking Ground DLC.");
+                        }
+                    }
+
+                    // Add the new instance to the registry
+                    KSP new_instance = new KSP(new_path, new_name, User);
+                    AddInstance(new_instance);
+                }
+                // Thrown by AddInstance() if created instance is not valid.
+                // Thrown f.e. if a write operation didn't complete for unknown reasons.
+                catch (NotKSPDirKraken kraken)
+                {
+                    throw kraken;
+                }
+                transaction.Complete();
             }
         }
 

@@ -54,8 +54,7 @@ namespace CKAN.CmdLine
                     {
                         // First the commands with three string arguments
                         case "fake":
-                            ht.AddPreOptionsLine($"Usage: ckan ksp {verb} [options] name path version dlcVersion");
-                            ht.AddPreOptionsLine($"Choose dlcVersion \"none\" if you want no simulated dlc.");
+                            ht.AddPreOptionsLine($"Usage: ckan ksp {verb} [options] name path version [--MakingHistory <version>] [--BreakingGround <version>]");
                             break;
 
                         case "clone":
@@ -124,8 +123,13 @@ namespace CKAN.CmdLine
             [ValueOption(0)] public string name { get; set; }
             [ValueOption(1)] public string path { get; set; }
             [ValueOption(2)] public string version { get; set; }
-            [ValueOption(3)] public string dlcVersion { get; set; }
-            [Option("set-default", DefaultValue = false, HelpText = "Set the new instance to the default one.")] public bool setToDefault { get; set; }
+
+            [Option("MakingHistory", DefaultValue = "none", HelpText = "The version of the DLC to be faked.")]
+            public string makingHistoryVersion { get; set; }
+            [Option("BreakingGround", DefaultValue = "none", HelpText = "The version of the DLC to be faked.")]
+            public string breakingGroundVersion { get; set; }
+
+            [Option("set-default", DefaultValue = false, HelpText = "Set the new instance as the default one.")] public bool setDefault { get; set; }
         }
 
         // This is required by ISubCommand
@@ -508,7 +512,7 @@ namespace CKAN.CmdLine
         {
             if (options.name == null || options.path == null || options.version == null)
             {
-                User.RaiseMessage("ksp fake <name> <path> <version> [dlcVersion] - argument(s) missing");
+                User.RaiseMessage("ksp fake <name> <path> <version> [--MakingHistory <version>] [--BreakingGround <version>] - argument(s) missing");
                 return Exit.BADOPT;
             }
 
@@ -517,16 +521,25 @@ namespace CKAN.CmdLine
             string installName = options.name;
             string path = options.path;
             KspVersion version;
-            bool setToDefault = options.setToDefault;
-            // dlcVersion is null if a user wants no simulated DLC
-            string dlcVersion;
-            if (options.dlcVersion == null || options.dlcVersion.ToLower() == "none")
+            bool setDefault = options.setDefault;
+
+            // options.<DLC>Version is "none" if the DLC should not be simulated.
+            string[] dlcVersions = new string[2];
+            if (options.makingHistoryVersion == null || options.makingHistoryVersion.ToLower() == "none")
             {
-                dlcVersion = null;
+                dlcVersions[0] = null;
             }
             else
             {
-                dlcVersion = options.dlcVersion;
+                dlcVersions[0] = options.makingHistoryVersion;
+            }
+            if (options.breakingGroundVersion == null || options.breakingGroundVersion.ToLower() == "none")
+            {
+                dlcVersions[1] = null;
+            }
+            else
+            {
+                dlcVersions[1] = options.breakingGroundVersion;
             }
 
             // Parse the choosen KSP version
@@ -538,6 +551,7 @@ namespace CKAN.CmdLine
             {
                 // Thrown if there is anything besides numbers and points in the version string or a different syntactic error.
                 User.RaiseError("Please check the version argument - Format it like Maj.Min.Patch[.Build] - e.g. 1.6.0 or 1.2.2.1622");
+                User.RaiseMessage("--Error--");
                 return Exit.BADOPT;
             }
 
@@ -550,36 +564,48 @@ namespace CKAN.CmdLine
             {
                 User.RaiseError("Couldn't find a valid KSP version for your input.\n" +
                 	"Make sure to enter the at least the version major and minor values in the form Maj.Min - e.g. 1.5");
+                User.RaiseMessage("--Error--");
                 return Exit.BADOPT;
             }
             catch (CancelledActionKraken)
             {
                 User.RaiseError("Selection cancelled! Please call 'ckan ksp fake' again.");
+                User.RaiseMessage("--Error--");
                 return Exit.ERROR;
             }
 
-
             User.RaiseMessage(String.Format("Creating new fake KSP install {0} at {1} with version {2}", installName, path, version.ToString()));
+            log.Debug("Faking instance...");
 
             try
             {
                 // Pass all arguments to CKAN.KSPManager.FakeInstance() and create a new one.
-                Manager.FakeInstance(installName, path, version, dlcVersion);
-                if (setToDefault)
+                Manager.FakeInstance(installName, path, version, dlcVersions);
+                if (setDefault)
                     User.RaiseMessage("Setting new instance to default...");
                     Manager.SetAutoStart(installName);
             }
             catch (BadInstallLocationKraken kraken)
             {
                 // The folder exists and is not empty.
-                log.Error(kraken);
+                User.RaiseError(kraken.Message);
+                User.RaiseMessage("--Error--");
+                return Exit.ERROR;
+            }
+            catch (IncorrectKSPVersionKraken kraken)
+            {
+                // Either thrown because the version object was invalid (highly unlikely with RaiseVersionSelectionDialog())
+                // or because the specified KSP version is too old for one of the DLCs.
+                User.RaiseError(kraken.Message);
+                User.RaiseMessage("--Error--");
                 return Exit.ERROR;
             }
             catch (NotKSPDirKraken kraken)
             {
                 // Something went wrong adding the new instance to the registry,
-                // most likely because the newly created directory is not valid.
+                // most likely because the newly created directory is somehow not valid.
                 log.Error(kraken);
+                User.RaiseMessage("--Error--");
                 return Exit.ERROR;
             }
             catch (InvalidKSPInstanceKraken)

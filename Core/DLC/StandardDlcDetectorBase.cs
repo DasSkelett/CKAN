@@ -77,5 +77,10 @@ namespace CKAN.DLC
                 return false;
             }
         }
+
+        public virtual string InstallPath()
+        {
+            return Path.Combine("GameData", "SquadExpansion", DirectoryBaseName);
+        }
     }
 }
