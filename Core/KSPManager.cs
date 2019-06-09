@@ -252,7 +252,7 @@ namespace CKAN
                     {
                         // MakingHistory
                         if (String.IsNullOrEmpty(dlcVersions[0])) { }
-                        else if (version.CompareTo(new KspVersion(1, 4, 0)) >= 0)
+                        else if (version >= new KspVersion(1, 4, 1))
                         {
                             string dlcDir = Path.Combine(new_path, new DLC.MakingHistoryDlcDetector().InstallPath());
                             file_transaction.CreateDirectory(dlcDir);
@@ -262,11 +262,12 @@ namespace CKAN
                         }
                         else
                         {
-                            throw new IncorrectKSPVersionKraken("KSP version 1.4.0 or above is needed for Making History DLC.");
+                            throw new IncorrectKSPVersionKraken("KSP version 1.4.1 or above is needed for Making History DLC.");
                         }
+
                         //BreakingGround
                         if (dlcVersions.Length < 1 || String.IsNullOrEmpty(dlcVersions[1])) { }
-                        else if (version.CompareTo(new KspVersion(1, 7, 1)) >= 0)
+                        else if (version >= new KspVersion(1, 7, 1))
                         {
                             string dlcDir = Path.Combine(new_path, new DLC.BreakingGroundDlcDetector().InstallPath());
                             file_transaction.CreateDirectory(dlcDir);
