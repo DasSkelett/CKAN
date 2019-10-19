@@ -22,6 +22,15 @@ else
     # Mono found, so we can run CKAN
     # The exe is called ckan.exe
     ASSEMBLY=ckan.exe
+
+    # If we want to run the GUI, set mono to 32bit mode. If not, go 64bit.
+    if [ $# -eq 0 ] || [ $1 == "gui" ]
+    then
+        MONO_ARGS="--arch=32"
+    else
+        MONO_ARGS="--arch=64"
+    fi
+
     # The script and ckan.exe are in the same folder, go there now
     MACOS_PATH="$(cd "$(dirname "$0")" && pwd)"
     cd "$MACOS_PATH"
@@ -29,5 +38,6 @@ else
     export MONO_MWF_USE_CARBON_BACKEND=1
     export GDIPLUS_NOX=1
     export DYLD_FALLBACK_LIBRARY_PATH="$MACOS_PATH:$MONO_FRAMEWORK_PATH/lib:/lib:/usr/lib"
-    "$MONO" --arch=32 "$ASSEMBLY" "$@"
+
+    "$MONO" "$MONO_ARGS" "$ASSEMBLY" "$@"
 fi
