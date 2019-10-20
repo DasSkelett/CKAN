@@ -23,13 +23,16 @@ else
     # The exe is called ckan.exe
     ASSEMBLY=ckan.exe
 
-    # If we want to run the GUI, set mono to 32bit mode. If not, go 64bit.
-    if [ $# -eq 0 ] || [ $1 == "gui" ]
-    then
-        MONO_ARGS="--arch=32"
-    else
-        MONO_ARGS="--arch=64"
-    fi
+    MONO_ARGS="--arch=32"
+    for ARG in "$@"
+    do
+        # If we want to run the GUI, set mono to 32bit mode. If not, go 64bit.
+        if [[ ! $ARG =~ ^- && $ARG != gui ]]
+        then
+            MONO_ARGS="--arch=64"
+            break
+        fi
+    done
 
     # The script and ckan.exe are in the same folder, go there now
     MACOS_PATH="$(cd "$(dirname "$0")" && pwd)"
