@@ -68,7 +68,7 @@ namespace CKAN
             {
                 AddStatusMessage(Properties.Resources.MainRepoScanning);
                 bool scanChanged = CurrentInstance.ScanGameData();
-    
+
                 AddStatusMessage(Properties.Resources.MainRepoUpdating);
 
                 // Note the current mods' compatibility for the NewlyCompatible filter

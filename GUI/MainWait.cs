@@ -48,6 +48,7 @@ namespace CKAN
                 RecreateDialogs();
 
                 tabController.SetActiveTab("ManageModsTabPage");
+                tabController.HideTab("WaitTabPage");
 
                 RetryCurrentActionButton.Enabled = false;
                 CancelCurrentActionButton.Enabled = false;
