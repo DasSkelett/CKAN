@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
 using System.Drawing;
+using System.Threading.Tasks;
 using CKAN.Versioning;
 using log4net;
 using CKAN.Configuration;
@@ -122,14 +123,21 @@ namespace CKAN
             if (newPath == config.DownloadCacheDir
                 || Main.Instance.Manager.TrySetupCache(newPath, out failReason))
             {
-                Main.Instance.Manager.Cache.GetSizeInfo(out m_cacheFileCount, out m_cacheSize);
-                CachePath.Text = config.DownloadCacheDir;
-                CacheSummary.Text = string.Format(Properties.Resources.SettingsDialogSummmary, m_cacheFileCount, CkanModule.FmtSize(m_cacheSize));
-                CacheSummary.ForeColor   = SystemColors.ControlText;
-                OpenCacheButton.Enabled  = true;
-                ClearCacheButton.Enabled = (m_cacheSize > 0);
-                PurgeToLimitMenuItem.Enabled = (config.CacheSizeLimit.HasValue
-                    && m_cacheSize > config.CacheSizeLimit.Value);
+                Task.Factory.StartNew(() =>
+                {
+                    // This might take a little while if the cache is big
+                    Main.Instance.Manager.Cache.GetSizeInfo(out m_cacheFileCount, out m_cacheSize);
+                    Util.Invoke(this, () =>
+                    {
+                        CachePath.Text = config.DownloadCacheDir;
+                        CacheSummary.Text = string.Format(Properties.Resources.SettingsDialogSummmary, m_cacheFileCount, CkanModule.FmtSize(m_cacheSize));
+                        CacheSummary.ForeColor   = SystemColors.ControlText;
+                        OpenCacheButton.Enabled  = true;
+                        ClearCacheButton.Enabled = (m_cacheSize > 0);
+                        PurgeToLimitMenuItem.Enabled = (config.CacheSizeLimit.HasValue
+                            && m_cacheSize > config.CacheSizeLimit.Value);
+                    });
+                });
             }
             else
             {
