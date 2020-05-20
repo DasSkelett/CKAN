@@ -60,11 +60,6 @@ namespace CKAN
             UpdateRefreshRate();
 
             UpdateCacheInfo(config.DownloadCacheDir);
-            if (config.CacheSizeLimit.HasValue)
-            {
-                // Show setting in MB
-                CacheLimit.Text = (config.CacheSizeLimit.Value / 1024 / 1024).ToString();
-            }
         }
 
         private void UpdateRefreshRate()
@@ -116,7 +111,7 @@ namespace CKAN
             // Else display a blank field.
             LanguageSelectionComboBox.SelectedIndex = LanguageSelectionComboBox.FindStringExact(config.Language);
         }
-        
+
         private bool updatingCache = false;
 
         private void UpdateCacheInfo(string newPath)
@@ -136,6 +131,11 @@ namespace CKAN
                     Main.Instance.Manager.Cache.GetSizeInfo(out m_cacheFileCount, out m_cacheSize);
                     Util.Invoke(this, () =>
                     {
+                        if (config.CacheSizeLimit.HasValue)
+                        {
+                            // Show setting in MB
+                            CacheLimit.Text = (config.CacheSizeLimit.Value / 1024 / 1024).ToString();
+                        }
                         CachePath.Text = config.DownloadCacheDir;
                         CacheSummary.Text = string.Format(Properties.Resources.SettingsDialogSummmary, m_cacheFileCount, CkanModule.FmtSize(m_cacheSize));
                         CacheSummary.ForeColor   = SystemColors.ControlText;
