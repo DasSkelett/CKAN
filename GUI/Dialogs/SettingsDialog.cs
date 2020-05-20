@@ -116,13 +116,20 @@ namespace CKAN
             // Else display a blank field.
             LanguageSelectionComboBox.SelectedIndex = LanguageSelectionComboBox.FindStringExact(config.Language);
         }
+        
+        private bool updatingCache = false;
 
         private void UpdateCacheInfo(string newPath)
         {
             string failReason;
+            if (updatingCache)
+            {
+                return;
+            }
             if (newPath == config.DownloadCacheDir
                 || Main.Instance.Manager.TrySetupCache(newPath, out failReason))
             {
+                updatingCache = true;
                 Task.Factory.StartNew(() =>
                 {
                     // This might take a little while if the cache is big
@@ -136,6 +143,7 @@ namespace CKAN
                         ClearCacheButton.Enabled = (m_cacheSize > 0);
                         PurgeToLimitMenuItem.Enabled = (config.CacheSizeLimit.HasValue
                             && m_cacheSize > config.CacheSizeLimit.Value);
+                        updatingCache = false;
                     });
                 });
             }
