@@ -59,7 +59,7 @@ jobs:
           name: ckan.exe
           path: _build/ckan.exe
           retention-days: 7
-        if: ${{ matrix.configuration }} == "release" && ${{ matrix.mono }} == "latest" && ${{ github.event_name }} == "pull_request"
+        if: matrix.configuration == "release" && matrix.mono == "latest" && github.event_name == "pull_request"
 
       - name: Send Discord Notification
         env:
