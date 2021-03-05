@@ -44,7 +44,7 @@ namespace CKAN
                 user.RaiseMessage("No changes since last update");
                 return RepoUpdateResult.NoChanges;
             }
-            List<CkanModule> allAvail = new List<CkanModule>();
+            Dictionary<Repository, List<CkanModule>> allAvail = new Dictionary<Repository, List<CkanModule>>();
             int index = 0;
             foreach (KeyValuePair<string, Repository> repository in sortedRepositories)
             {
@@ -52,18 +52,18 @@ namespace CKAN
                     10 + 80 * index / sortedRepositories.Count);
                 SortedDictionary<string, int> downloadCounts;
                 string newETag;
-                List<CkanModule> avail = UpdateRegistry(repository.Value.uri, ksp, user, out downloadCounts, out newETag);
-                registry_manager.registry.SetDownloadCounts(downloadCounts);
+                List<CkanModule> avail = fetchAvailableModules(repository.Value.uri, ksp, user, out downloadCounts, out newETag);
+                registry_manager.registry.SetDownloadCounts(repository.Value, downloadCounts);
                 if (avail == null)
                 {
                     // Report failure if any repo fails, rather than losing half the list.
-                    // UpdateRegistry will have alerted the user to specific errors already.
+                    // fetchAvailableModules will have alerted the user to specific errors already.
                     return RepoUpdateResult.Failed;
                 }
                 else
                 {
                     // Merge all the lists
-                    allAvail.AddRange(avail);
+                    allAvail[repository.Value] = avail;
                     repository.Value.last_server_etag = newETag;
                     user.RaiseMessage("Updated {0}", repository.Value.name);
                 }
@@ -76,7 +76,10 @@ namespace CKAN
                 using (var transaction = CkanTransaction.CreateTransactionScope())
                 {
                     // Save our changes.
-                    registry_manager.registry.SetAllAvailable(allAvail);
+                    foreach (var repo in allAvail)
+                    {
+                        registry_manager.registry.SetAllAvailable(repo.Key.name, repo.Value);
+                    }
                     registry_manager.Save(enforce_consistency: false);
                     transaction.Complete();
                 }
@@ -105,7 +108,7 @@ namespace CKAN
         /// <summary>
         /// Retrieve available modules from the URL given.
         /// </summary>
-        private static List<CkanModule> UpdateRegistry(Uri repo, GameInstance ksp, IUser user, out SortedDictionary<string, int> downloadCounts, out string currentETag)
+        private static List<CkanModule> fetchAvailableModules(Uri repo, GameInstance ksp, IUser user, out SortedDictionary<string, int> downloadCounts, out string currentETag)
         {
             TxFileManager file_transaction = new TxFileManager();
             downloadCounts = null;
@@ -152,7 +155,7 @@ namespace CKAN
         /// <returns>
         /// List of CkanModules that are available and have changed metadata
         /// </returns>
-        private static List<CkanModule> GetChangedInstalledModules(Registry registry)
+        private static List<CkanModule> GetChangedInstalledModules(IRegistry registry)
         {
             List<CkanModule> metadataChanges = new List<CkanModule>();
             foreach (InstalledModule installedModule in registry.InstalledModules)
@@ -160,25 +163,25 @@ namespace CKAN
                 string identifier = installedModule.identifier;
 
                 ModuleVersion installedVersion = registry.InstalledVersion(identifier);
-                if (!(registry.available_modules.ContainsKey(identifier)))
+                if (!registry.AvailableByIdentifier(identifier).Any())
                 {
-                    log.InfoFormat("UpdateRegistry, module {0}, version {1} not in registry", identifier, installedVersion);
+                    log.InfoFormat("fetchAvailableModules, module {0}, version {1} not in registry", identifier, installedVersion);
                     continue;
                 }
 
-                if (!registry.available_modules[identifier].module_version.ContainsKey(installedVersion))
+                // If the mod is installed and the metadata is different we have to reinstall it
+                CkanModule newMetadata = registry.AvailableByIdentifier(identifier).FirstOrDefault(module => module.version == installedVersion);
+
+                if (newMetadata == null)
                 {
                     continue;
                 }
-
-                // if the mod is installed and the metadata is different we have to reinstall it
-                CkanModule metadata = registry.available_modules[identifier].module_version[installedVersion];
 
                 CkanModule oldMetadata = registry.InstalledModule(identifier).Module;
 
-                if (!MetadataEquals(metadata, oldMetadata))
+                if (!MetadataEquals(newMetadata, oldMetadata))
                 {
-                    metadataChanges.Add(registry.available_modules[identifier].module_version[installedVersion]);
+                    metadataChanges.Add(newMetadata);
                 }
             }
             return metadataChanges;
@@ -320,38 +323,58 @@ Do you wish to reinstall now?", sb)))
         /// <param name="registry_manager">Manager of the regisry of interest</param>
         /// <param name="ksp">Game instance</param>
         /// <param name="user">Object for user interaction callbacks</param>
-        /// <param name="repo">Repository to check</param>
+        /// <param name="repoString">Repository to check</param>
         /// <returns>
         /// Number of modules found in repo
         /// </returns>
-        public static bool Update(RegistryManager registry_manager, GameInstance ksp, IUser user, string repo = null)
+        public static bool Update(RegistryManager registry_manager, GameInstance ksp, IUser user, string repoString = null)
         {
-            if (repo == null)
+            Repository repository = null;
+            if (repoString == null)
             {
-                return Update(registry_manager, ksp, user, (Uri)null);
+                repoString = ksp.game.DefaultRepositoryURL.ToString();
             }
 
-            return Update(registry_manager, ksp, user, new Uri(repo));
+            // Assume it's either the name or the URI of the repo
+            repository = registry_manager.registry.Repositories.Values.FirstOrDefault(
+                r => r.name == repoString || r.uri.ToString() == repoString
+            );
+
+            return Update(registry_manager, ksp, user, repository);
         }
 
         // Same as above, just with a Uri instead of string for the repo
-        public static bool Update(RegistryManager registry_manager, GameInstance ksp, IUser user, Uri repo = null)
+        public static bool Update(RegistryManager registry_manager, GameInstance ksp, IUser user, Uri repoUri = null)
         {
-            // Use our default repo, unless we've been told otherwise.
+            Repository repository = null;
+            if (repoUri == null)
+            {
+                // Use our default repo, unless we've been told otherwise.
+                repoUri = ksp.game.DefaultRepositoryURL;
+            }
+
+            repository = registry_manager.registry.Repositories.Values.FirstOrDefault(r => r.uri == repoUri);
+
+            return Update(registry_manager, ksp, user, repository);
+        }
+
+        public static bool Update(RegistryManager registry_manager, GameInstance ksp, IUser user, Repository repo)
+        {
             if (repo == null)
             {
-                repo = ksp.game.DefaultRepositoryURL;
+                return false;
             }
 
             SortedDictionary<string, int> downloadCounts;
             string newETag;
-            List<CkanModule> newAvail = UpdateRegistry(repo, ksp, user, out downloadCounts, out newETag);
+            List<CkanModule> newAvail = fetchAvailableModules(repo.uri, ksp, user, out downloadCounts, out newETag);
 
-            registry_manager.registry.SetDownloadCounts(downloadCounts);
+            registry_manager.registry.SetDownloadCounts(repo, downloadCounts);
 
             if (newAvail != null && newAvail.Count > 0)
             {
-                registry_manager.registry.SetAllAvailable(newAvail);
+                // TODO what to do if URI doesn't match?
+                registry_manager.registry.SetAllAvailable(repo.name, newAvail);
                 // Save our changes!
                 registry_manager.Save(enforce_consistency: false);
             }
@@ -559,7 +582,7 @@ Do you wish to reinstall now?", sb)))
             }
         }
 
-        private static void ShowUserInconsistencies(Registry registry, IUser user)
+        private static void ShowUserInconsistencies(IRegistry registry, IUser user)
         {
             // However, if there are any sanity errors let's show them to the user so at least they're aware
             var sanityErrors = registry.GetSanityErrors();

@@ -31,7 +31,7 @@ namespace Tests.Core
             cache.Dispose();
             cache = null;
             module_cache.Dispose();
-            module_cache = null;            
+            module_cache = null;
             Directory.Delete(cache_dir, true);
         }
 
@@ -210,7 +210,7 @@ namespace Tests.Core
         public void EnforceSizeLimit_UnderLimit_FileRetained()
         {
             // Arrange
-            CKAN.Registry registry = CKAN.Registry.Empty();
+            CKAN.IRegistry registry = CKAN.MonolithicRegistry.Empty();
             long fileSize = new FileInfo(TestData.DogeCoinFlagZip()).Length;
 
             // Act
@@ -226,7 +226,7 @@ namespace Tests.Core
         public void EnforceSizeLimit_OverLimit_FileRemoved()
         {
             // Arrange
-            CKAN.Registry registry = CKAN.Registry.Empty();
+            CKAN.IRegistry registry = CKAN.MonolithicRegistry.Empty();
             long fileSize = new FileInfo(TestData.DogeCoinFlagZip()).Length;
 
             // Act

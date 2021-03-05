@@ -446,7 +446,7 @@ namespace Tests.Core
                 var registry = CKAN.RegistryManager.Instance(ksp.KSP).registry;
                 Assert.AreEqual(0, registry.CompatibleModules(ksp.KSP.VersionCriteria()).Count());
 
-                registry.AddAvailable(TestData.DogeCoinFlag_101_module());
+                registry.AddAvailable(TODO, TestData.DogeCoinFlag_101_module());
 
                 Assert.AreEqual(1, registry.CompatibleModules(ksp.KSP.VersionCriteria()).Count());
 
@@ -484,7 +484,7 @@ namespace Tests.Core
                 const string mod_file_name = "DogeCoinFlag/Flags/dogecoin.png";
                 string mod_file_path = Path.Combine(ksp.KSP.game.PrimaryModDirectory(ksp.KSP), mod_file_name);
                 CkanModule mod = TestData.DogeCoinFlag_101_module();
-                registry.AddAvailable(mod);
+                registry.AddAvailable(TODO, mod);
                 manager.Cache.Store(mod, TestData.DogeCoinFlagZip());
                 List<string> modules = new List<string>()
                 {
@@ -525,7 +525,7 @@ namespace Tests.Core
                 // Install the test mod.
                 var registry = CKAN.RegistryManager.Instance(ksp.KSP).registry;
                 manager.Cache.Store(TestData.DogeCoinFlag_101_module(), TestData.DogeCoinFlagZip());
-                registry.AddAvailable(TestData.DogeCoinFlag_101_module());
+                registry.AddAvailable(TODO, TestData.DogeCoinFlag_101_module());
 
                 List<string> modules = new List<string> { TestData.DogeCoinFlag_101_module().identifier };
 
@@ -569,7 +569,7 @@ namespace Tests.Core
 
                 var registry = CKAN.RegistryManager.Instance(ksp.KSP).registry;
                 manager.Cache.Store(TestData.DogeCoinFlag_101_module(), TestData.DogeCoinFlagZip());
-                registry.AddAvailable(TestData.DogeCoinFlag_101_module());
+                registry.AddAvailable(TODO, TestData.DogeCoinFlag_101_module());
 
                 List<string> modules = new List<string> { TestData.DogeCoinFlag_101_module().identifier };
 
@@ -580,7 +580,7 @@ namespace Tests.Core
 
                 // Install the plugin test mod.
                 manager.Cache.Store(TestData.DogeCoinPlugin_module(), TestData.DogeCoinPluginZip());
-                registry.AddAvailable(TestData.DogeCoinPlugin_module());
+                registry.AddAvailable(TODO, TestData.DogeCoinPlugin_module());
 
                 modules.Add(TestData.DogeCoinPlugin_module().identifier);
 
@@ -632,7 +632,7 @@ namespace Tests.Core
 
                         // Mark it as available in the registry.
                         var registry = CKAN.RegistryManager.Instance(ksp.KSP).registry;
-                        registry.AddAvailable(TestData.DogeCoinFlag_101_module());
+                        registry.AddAvailable(TODO, TestData.DogeCoinFlag_101_module());
 
                         // Attempt to install it.
                         List<string> modules = new List<string> { TestData.DogeCoinFlag_101_module().identifier };

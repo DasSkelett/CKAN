@@ -10,7 +10,7 @@ namespace CKAN.Exporters
     /// </summary>
     /// <remarks>
     /// <see cref="ExportFileType.Ckan"/> is currently unhandled as that requires use of the
-    /// <see cref="RegistryManager"/> rather than just the <see cref="Registry"/>.
+    /// <see cref="RegistryManager"/> rather than just the <see cref="IRegistry"/>.
     /// </remarks>
     public sealed class Exporter : IExporter
     {
@@ -40,7 +40,7 @@ namespace CKAN.Exporters
             }
         }
 
-        public void Export(IRegistryQuerier registry, Stream stream)
+        public void Export(IRegistry registry, Stream stream)
         {
             _exporter.Export(registry, stream);
         }

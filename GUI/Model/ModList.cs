@@ -112,7 +112,7 @@ namespace CKAN
         /// <param name="installer">A module installer for the current game instance</param>
         /// <param name="version">The version of the current game instance</param>
         public IEnumerable<ModChange> ComputeChangeSetFromModList(
-            IRegistryQuerier registry, HashSet<ModChange> changeSet, ModuleInstaller installer,
+            IRegistry registry, HashSet<ModChange> changeSet, ModuleInstaller installer,
             GameVersionCriteria version)
         {
             var modules_to_install = new HashSet<CkanModule>();
@@ -428,7 +428,7 @@ namespace CKAN
             }
         }
 
-        public static Dictionary<GUIMod, string> ComputeConflictsFromModList(IRegistryQuerier registry,
+        public static Dictionary<GUIMod, string> ComputeConflictsFromModList(IRegistry registry,
             IEnumerable<ModChange> change_set, GameVersionCriteria ksp_version)
         {
             var modules_to_install = new HashSet<CkanModule>();
@@ -479,7 +479,7 @@ namespace CKAN
             );
         }
 
-        public HashSet<ModChange> ComputeUserChangeSet(IRegistryQuerier registry)
+        public HashSet<ModChange> ComputeUserChangeSet(IRegistry registry)
         {
             var removableAuto = registry?.FindRemovableAutoInstalled(registry?.InstalledModules)
                 ?? new InstalledModule[] {};

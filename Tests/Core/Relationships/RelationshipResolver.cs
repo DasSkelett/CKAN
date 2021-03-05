@@ -14,14 +14,14 @@ namespace Tests.Core.Relationships
     [TestFixture]
     public class RelationshipResolverTests
     {
-        private CKAN.Registry registry;
+        private CKAN.IRegistry registry;
         private RelationshipResolverOptions options;
         private RandomModuleGenerator generator;
 
         [SetUp]
         public void Setup()
         {
-            registry = CKAN.Registry.Empty();
+            registry = CKAN.MonolithicRegistry.Empty();
             options = RelationshipResolver.DefaultOpts();
             generator = new RandomModuleGenerator(new Random(0451));
             //Sanity checker means even incorrect RelationshipResolver logic was passing
@@ -31,7 +31,7 @@ namespace Tests.Core.Relationships
         [Test]
         public void Constructor_WithoutModules_AlwaysReturns()
         {
-            registry = CKAN.Registry.Empty();
+            registry = CKAN.MonolithicRegistry.Empty();
             options = RelationshipResolver.DefaultOpts();
             Assert.DoesNotThrow(() => new RelationshipResolver(new List<string>(),
                 null,
@@ -485,7 +485,7 @@ namespace Tests.Core.Relationships
                 new ModuleRelationshipDescriptor {name = dependant.identifier}
             });
             list.Add(depender.identifier);
-            registry.AddAvailable(depender);
+            registry.AddAvailable(TODO, depender);
 
             Assert.Throws<DependencyNotSatisfiedKraken>(() => new RelationshipResolver(
                 list,
@@ -712,7 +712,7 @@ namespace Tests.Core.Relationships
             var mod = generator.GeneratorRandomModule();
             mod.ksp_version = GameVersion.Parse("0.10");
             list.Add(mod.identifier);
-            registry.AddAvailable(mod);
+            registry.AddAvailable(TODO, mod);
             registry.RemoveAvailable(mod);
 
             Assert.Throws<ModuleNotFoundKraken>(() => new RelationshipResolver(
@@ -812,7 +812,7 @@ namespace Tests.Core.Relationships
             var list = new List<string>();
             var mod = generator.GeneratorRandomModule();
             list.Add(mod.identifier);
-            registry.AddAvailable(mod);
+            registry.AddAvailable(TODO, mod);
             AddToRegistry(mod);
             var relationship_resolver = new RelationshipResolver(list, null, options, registry, null);
 
@@ -827,7 +827,7 @@ namespace Tests.Core.Relationships
             var list = new List<string>();
             var mod = generator.GeneratorRandomModule();
             list.Add(mod.identifier);
-            registry.AddAvailable(mod);
+            registry.AddAvailable(TODO, mod);
             AddToRegistry(mod);
 
             var relationship_resolver = new RelationshipResolver(list, null, options, registry, null);
@@ -917,7 +917,7 @@ namespace Tests.Core.Relationships
         {
             foreach (var module in modules)
             {
-                registry.AddAvailable(module);
+                registry.AddAvailable(TODO, module);
             }
         }
     }

@@ -21,7 +21,7 @@ namespace CKAN
         /// </summary>
         /// <param name="registry">Reference to the registry</param>
         /// <param name="module">Module to install</param>
-        public void InstallModuleDriver(IRegistryQuerier registry, CkanModule module)
+        public void InstallModuleDriver(IRegistry registry, CkanModule module)
         {
             try
             {
@@ -70,7 +70,7 @@ namespace CKAN
             var opts = (KeyValuePair<ModChanges, RelationshipResolverOptions>) e.Argument;
 
             RegistryManager registry_manager = RegistryManager.Instance(manager.CurrentInstance);
-            Registry registry = registry_manager.registry;
+            IRegistry registry = registry_manager.registry;
             ModuleInstaller installer = ModuleInstaller.GetInstance(CurrentInstance, Manager.Cache, currentUser);
             // Avoid accumulating multiple event handlers
             installer.onReportModInstalled -= OnModInstalled;
@@ -247,7 +247,7 @@ namespace CKAN
             }
         }
 
-        private void HandlePossibleConfigOnlyDirs(Registry registry, HashSet<string> possibleConfigOnlyDirs)
+        private void HandlePossibleConfigOnlyDirs(IRegistry registry, HashSet<string> possibleConfigOnlyDirs)
         {
             if (possibleConfigOnlyDirs != null)
             {

@@ -358,7 +358,7 @@ namespace CKAN
             DependsGraphTree.BeginUpdate();
 
             TreeNode node = args.Node;
-            IRegistryQuerier registry = RegistryManager.Instance(manager.CurrentInstance).registry;
+            IRegistry registry = RegistryManager.Instance(manager.CurrentInstance).registry;
             // Should already have children, since the user is expanding it
             foreach (TreeNode child in node.Nodes)
             {
@@ -407,7 +407,7 @@ namespace CKAN
             DependsGraphTree.BackColor = SystemColors.Window;
             DependsGraphTree.LineColor = SystemColors.WindowText;
             DependsGraphTree.Nodes.Clear();
-            IRegistryQuerier registry = RegistryManager.Instance(manager.CurrentInstance).registry;
+            IRegistry registry = RegistryManager.Instance(manager.CurrentInstance).registry;
             TreeNode root = new TreeNode($"{module.name} {module.version}", 0, 0)
             {
                 Name = module.identifier,
@@ -428,7 +428,7 @@ namespace CKAN
             RelationshipType.Conflicts
         };
 
-        private void AddChildren(IRegistryQuerier registry, TreeNode node)
+        private void AddChildren(IRegistry registry, TreeNode node)
         {
             // Skip children of nodes from circular dependencies
             if (ImMyOwnGrandpa(node))
@@ -480,7 +480,7 @@ namespace CKAN
             }
         }
 
-        private TreeNode findDependencyShallow(IRegistryQuerier registry, RelationshipDescriptor relDescr, RelationshipType relationship, GameVersionCriteria crit)
+        private TreeNode findDependencyShallow(IRegistry registry, RelationshipDescriptor relDescr, RelationshipType relationship, GameVersionCriteria crit)
         {
             // Maybe it's a DLC?
             if (relDescr.MatchesAny(
@@ -524,7 +524,7 @@ namespace CKAN
             };
         }
 
-        private TreeNode indexedNode(IRegistryQuerier registry, CkanModule module, RelationshipType relationship, bool compatible)
+        private TreeNode indexedNode(IRegistry registry, CkanModule module, RelationshipType relationship, bool compatible)
         {
             int icon = (int)relationship + 1;
             string suffix = compatible ? ""

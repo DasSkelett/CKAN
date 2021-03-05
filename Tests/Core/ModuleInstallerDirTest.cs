@@ -22,7 +22,7 @@ namespace Tests.Core
         private DisposableKSP        _instance;
         private FakeConfiguration    _config;
         private CKAN.RegistryManager _registryManager;
-        private CKAN.Registry        _registry;
+        private CKAN.IRegistry       _registry;
         private CKAN.ModuleInstaller _installer;
         private CkanModule           _testModule;
         private string               _gameDir;
@@ -48,7 +48,7 @@ namespace Tests.Core
 
             _gameDir = _instance.KSP.GameDir();
             _gameDataDir = _instance.KSP.game.PrimaryModDirectory(_instance.KSP);
-            _registry.AddAvailable(_testModule);
+            _registry.AddAvailable(TODO, _testModule);
             var testModFile = TestData.DogeCoinFlagZip();
             _manager.Cache.Store(_testModule, testModFile);
             HashSet<string> possibleConfigOnlyDirs = null;

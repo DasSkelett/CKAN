@@ -98,7 +98,7 @@ namespace CKAN
         private readonly Dictionary<CkanModule, SelectionReason> reasons =
             new Dictionary<CkanModule, SelectionReason>(new NameComparer());
 
-        private readonly IRegistryQuerier registry;
+        private readonly IRegistry registry;
         private readonly GameVersionCriteria GameVersion;
         private readonly RelationshipResolverOptions options;
         private readonly HashSet<CkanModule> installed_modules;
@@ -109,7 +109,7 @@ namespace CKAN
         /// <param name="options">Options for the RelationshipResolver</param>
         /// <param name="registry">CKAN registry object for current game instance</param>
         /// <param name="GameVersion">The current KSP version criteria to consider</param>
-        public RelationshipResolver(RelationshipResolverOptions options, IRegistryQuerier registry, GameVersionCriteria GameVersion)
+        public RelationshipResolver(RelationshipResolverOptions options, IRegistry registry, GameVersionCriteria GameVersion)
         {
             this.registry = registry;
             this.GameVersion = GameVersion;
@@ -131,7 +131,7 @@ namespace CKAN
         /// <param name="options">Options for the RelationshipResolver</param>
         /// <param name="registry">CKAN registry object for current game instance</param>
         /// <param name="GameVersion">The current KSP version criteria to consider</param>
-        public RelationshipResolver(IEnumerable<string> modulesToInstall, IEnumerable<string> modulesToRemove, RelationshipResolverOptions options, IRegistryQuerier registry,
+        public RelationshipResolver(IEnumerable<string> modulesToInstall, IEnumerable<string> modulesToRemove, RelationshipResolverOptions options, IRegistry registry,
             GameVersionCriteria GameVersion) :
                 this(
                     modulesToInstall?.Select(mod => TranslateModule(mod, options, registry, GameVersion)),
@@ -157,7 +157,7 @@ namespace CKAN
         /// <param name="registry">CKAN registry object for current game instance</param>
         /// <param name="GameVersion">The current KSP version criteria to consider</param>
         /// <returns>A CkanModule</returns>
-        private static CkanModule TranslateModule(string name, RelationshipResolverOptions options, IRegistryQuerier registry, GameVersionCriteria GameVersion)
+        private static CkanModule TranslateModule(string name, RelationshipResolverOptions options, IRegistry registry, GameVersionCriteria GameVersion)
         {
             if (options.allow_incompatible)
             {
@@ -186,7 +186,7 @@ namespace CKAN
         /// <param name="options">Options for the RelationshipResolver</param>
         /// <param name="registry">CKAN registry object for current game instance</param>
         /// <param name="GameVersion">The current KSP version criteria to consider</param>
-        public RelationshipResolver(IEnumerable<CkanModule> modulesToInstall, IEnumerable<CkanModule> modulesToRemove, RelationshipResolverOptions options, IRegistryQuerier registry,
+        public RelationshipResolver(IEnumerable<CkanModule> modulesToInstall, IEnumerable<CkanModule> modulesToRemove, RelationshipResolverOptions options, IRegistry registry,
             GameVersionCriteria GameVersion)
             : this(options, registry, GameVersion)
         {

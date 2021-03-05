@@ -9,7 +9,7 @@ namespace Tests.Core.Net
     public class Repo
     {
         private CKAN.RegistryManager manager;
-        private CKAN.Registry registry;
+        private CKAN.IRegistry registry;
         private DisposableKSP ksp;
 
         [SetUp]

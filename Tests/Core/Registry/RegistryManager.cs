@@ -78,7 +78,7 @@ namespace Tests.Core.RegistryManager
             ksp     = dispksp.KSP;
 
             // Assert
-            CKAN.Registry reg = CKAN.RegistryManager.Instance(ksp).registry;
+            CKAN.IRegistry reg = CKAN.RegistryManager.Instance(ksp).registry;
             Assert.IsNotNull(reg);
             // These lists should all be empty, copied from CKAN.Registry.Empty()
             Assert.IsFalse(reg.InstalledModules.Any());

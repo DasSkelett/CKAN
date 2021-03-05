@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using Autofac;
+using CKAN.Configuration;
 using Newtonsoft.Json;
 using CommandLine;
 using CommandLine.Text;
@@ -20,16 +22,19 @@ namespace CKAN.CmdLine
             public AvailableOptions AvailableOptions { get; set; }
 
             [VerbOption("list",      HelpText = "List repositories")]
-            public ListOptions ListOptions { get; set; }
+            public ListOptions ListOptions            { get; set; }
 
             [VerbOption("add",       HelpText = "Add a repository")]
-            public AddOptions AddOptions { get; set; }
+            public AddOptions AddOptions              { get; set; }
 
             [VerbOption("forget",    HelpText = "Forget a repository")]
-            public ForgetOptions ForgetOptions { get; set; }
+            public ForgetOptions ForgetOptions        { get; set; }
+
+            [VerbOption("activate",  HelpText = "Activate a repository")]
+            public ActivateOptions ActivateOptions      { get; set; }
 
             [VerbOption("default",   HelpText = "Set the default repository")]
-            public DefaultOptions DefaultOptions { get; set; }
+            public DefaultOptions DefaultOptions      { get; set; }
 
             [HelpVerbOption]
             public string GetUsage(string verb)
@@ -55,6 +60,7 @@ namespace CKAN.CmdLine
                         // Then the commands with one argument
                         case "remove":
                         case "forget":
+                        case "activate":
                         case "default":
                             ht.AddPreOptionsLine($"Usage: ckan repo {verb} [options] name");
                             break;
@@ -86,6 +92,11 @@ namespace CKAN.CmdLine
         }
 
         internal class ForgetOptions : InstanceSpecificOptions
+        {
+            [ValueOption(0)] public string name { get; set; }
+        }
+
+        internal class ActivateOptions : InstanceSpecificOptions
         {
             [ValueOption(0)] public string name { get; set; }
         }
@@ -142,6 +153,10 @@ namespace CKAN.CmdLine
                         case "remove":
                         case "forget":
                             exitCode = ForgetRepository((ForgetOptions)suboptions);
+                            break;
+
+                        case "activate":
+                            exitCode = ActivateRepository((ActivateOptions) suboptions);
                             break;
 
                         case "default":
@@ -305,6 +320,42 @@ namespace CKAN.CmdLine
             registry.Repositories.Remove(name);
             User.RaiseMessage("Successfully removed \"{0}\"", options.name);
             manager.Save();
+
+            return Exit.OK;
+        }
+
+        private int ActivateRepository(ActivateOptions options)
+        {
+            if (options.name == null)
+            {
+                User.RaiseError("forget <name> - argument missing, perhaps you forgot it?");
+                return Exit.BADOPT;
+            }
+
+            var activeRepos  = ServiceLocator.Container.Resolve<IConfiguration>().GetInstances();
+
+            // TODO Registry
+            // RegistryManager manager = RegistryManager.Instance(MainClass.GetGameInstance(Manager));
+            // var registry = manager.registry;
+            // log.DebugFormat("About to forget repository '{0}'", options.name);
+            //
+            // var repos = registry.Repositories;
+            //
+            // string name = options.name;
+            // if (!repos.ContainsKey(options.name))
+            // {
+            //     name = repos.Keys.FirstOrDefault(repo => repo.Equals(options.name, StringComparison.OrdinalIgnoreCase));
+            //     if (name == null)
+            //     {
+            //         User.RaiseMessage("Couldn't find repository with name \"{0}\", aborting..", options.name);
+            //         return Exit.BADOPT;
+            //     }
+            //     User.RaiseMessage("Removing insensitive match \"{0}\"", name);
+            // }
+            //
+            // registry.Repositories.Remove(name);
+            // User.RaiseMessage("Successfully removed \"{0}\"", options.name);
+            // manager.Save();
 
             return Exit.OK;
         }

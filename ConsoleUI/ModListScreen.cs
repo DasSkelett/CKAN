@@ -605,7 +605,7 @@ namespace CKAN.ConsoleUI {
         }
 
         private GameInstanceManager manager;
-        private Registry            registry;
+        private IRegistry           registry;
         private bool                debug;
 
         private ConsoleField               searchBox;
@@ -714,7 +714,7 @@ namespace CKAN.ConsoleUI {
         /// <returns>
         /// Status of mod
         /// </returns>
-        public InstallStatus GetModStatus(GameInstanceManager manager, IRegistryQuerier registry, string identifier)
+        public InstallStatus GetModStatus(GameInstanceManager manager, IRegistry registry, string identifier)
         {
             if (registry.IsInstalled(identifier, false)) {
                 if (Remove.Contains(identifier)) {
@@ -758,7 +758,7 @@ namespace CKAN.ConsoleUI {
         /// <returns>
         /// True if there are any versions of this mod available, false otherwise.
         /// </returns>
-        public static bool IsAnyAvailable(IRegistryQuerier registry, string identifier)
+        public static bool IsAnyAvailable(IRegistry registry, string identifier)
         {
             try {
                 registry.LatestAvailable(identifier, null);

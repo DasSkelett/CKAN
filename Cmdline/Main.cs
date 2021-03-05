@@ -90,7 +90,7 @@ namespace CKAN.CmdLine
 
                     case "cache":
                         return (new Cache()).RunSubCommand(manager, opts, new SubCommandOptions(args));
-                        
+
                     case "mark":
                         return (new Mark()).RunSubCommand(manager, opts, new SubCommandOptions(args));
                 }
@@ -252,10 +252,11 @@ namespace CKAN.CmdLine
             RegistryManager registry_manager = RegistryManager.Instance(current_instance);
 
             // Remove this version of the module in the registry, if it exists.
-            registry_manager.registry.RemoveAvailable(module);
+            registry_manager.registry.RemoveAvailable(module.identifier, module.version);
 
             // Sneakily add our version in...
-            registry_manager.registry.AddAvailable(module);
+            // TODO do we even need to add it?
+            // registry_manager.registry.AddAvailable(TODO, module);
 
             return module;
         }

@@ -54,5 +54,13 @@ namespace CKAN.Configuration
 
         void SetRegistryToInstances(SortedList<string, GameInstance> instances);
         IEnumerable<Tuple<string, string, string>> GetInstances();
+
+        /// <summary>
+        /// All known repositories
+        /// </summary>
+        /// <returns>
+        /// A dictionary mapping repository names to their URLs
+        /// </returns>
+        IDictionary<string, string> Repositories { get; set; }
     }
 }

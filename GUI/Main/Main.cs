@@ -369,7 +369,7 @@ namespace CKAN
                     .ShowDialog();
             }
 
-            (RegistryManager.Instance(CurrentInstance).registry as Registry)
+            (RegistryManager.Instance(CurrentInstance).registry)
                 ?.BuildTagIndex(ManageMods.mainModList.ModuleTags);
 
             bool repoUpdateNeeded = configuration.RefreshOnStartup

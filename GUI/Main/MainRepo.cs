@@ -71,7 +71,7 @@ namespace CKAN
 
                 // Note the current mods' compatibility for the NewlyCompatible filter
                 GameVersionCriteria versionCriteria = CurrentInstance.VersionCriteria();
-                IRegistryQuerier registry = RegistryManager.Instance(CurrentInstance).registry;
+                IRegistry registry = RegistryManager.Instance(CurrentInstance).registry;
                 Dictionary<string, bool> oldModules = registry.CompatibleModules(versionCriteria)
                     .ToDictionary(m => m.identifier, m => false);
                 registry.IncompatibleModules(versionCriteria)

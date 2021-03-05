@@ -392,7 +392,7 @@ namespace CKAN
         /// <param name="ksp_version">The current KSP version criteria to consider</param>
         /// <returns>A CkanModule</returns>
         /// <exception cref="ModuleNotFoundKraken">Thrown if no matching module could be found</exception>
-        public static CkanModule FromIDandVersion(IRegistryQuerier registry, string mod, GameVersionCriteria ksp_version)
+        public static CkanModule FromIDandVersion(IRegistry registry, string mod, GameVersionCriteria ksp_version)
         {
             CkanModule module;
 
@@ -601,6 +601,11 @@ namespace CKAN
         bool IEquatable<CkanModule>.Equals(CkanModule other)
         {
             return Equals(other);
+        }
+
+        public static CkanModule LatestOfList(IEnumerable<CkanModule> modules)
+        {
+            return modules.OrderByDescending((module) => module.version).FirstOrDefault();
         }
 
         /// <summary>

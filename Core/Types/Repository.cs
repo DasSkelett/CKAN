@@ -1,11 +1,13 @@
 ﻿using System;
-using System.Net;
+using System.Collections.Generic;
+using System.IO;
+using System.Runtime.CompilerServices;
 using Newtonsoft.Json;
 using CKAN.Games;
 
 namespace CKAN
 {
-    public class Repository
+    public class Repository : IComparable
     {
         [JsonIgnore] public static readonly string default_ckan_repo_name = "default";
 
@@ -41,6 +43,21 @@ namespace CKAN
         public override string ToString()
         {
             return String.Format("{0} ({1}, {2})", name, priority, uri);
+        }
+
+        /// <summary>
+        /// Compare first by priority, then name.
+        /// </summary>
+        public int CompareTo(object obj)
+        {
+            var otherRepo = (Repository) obj;
+            if (otherRepo == null)
+            {
+                throw new ArgumentException();
+            }
+
+            int prioComp = priority.CompareTo(otherRepo.priority);
+            return prioComp != 0 ? prioComp : String.Compare(name, otherRepo.name, StringComparison.InvariantCulture);
         }
     }
 

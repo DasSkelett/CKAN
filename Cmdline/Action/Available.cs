@@ -15,7 +15,7 @@ namespace CKAN.CmdLine
         public int RunCommand(CKAN.GameInstance ksp, object raw_options)
         {
             AvailableOptions opts       = (AvailableOptions)raw_options;
-            IRegistryQuerier registry   = RegistryManager.Instance(ksp).registry;
+            IRegistry registry   = RegistryManager.Instance(ksp).registry;
             
             var compatible = registry
                 .CompatibleModules(ksp.VersionCriteria())

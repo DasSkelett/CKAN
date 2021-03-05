@@ -16,7 +16,7 @@ namespace Tests.Core.Relationships
     public class SanityChecker
     {
         private CKAN.RegistryManager manager;
-        private CKAN.Registry registry;
+        private CKAN.IRegistry registry;
         private DisposableKSP ksp;
 
         [OneTimeSetUp]
@@ -347,7 +347,7 @@ namespace Tests.Core.Relationships
             var dll_count = dlls.Count;
             var mods_count = mods.Count;
 
-            var results = CKAN.Registry.FindReverseDependencies(to_remove, null, mods, dlls, dlc);
+            var results = CKAN.MonolithicRegistry.FindReverseDependencies(to_remove, null, mods, dlls, dlc);
 
             // Make sure nothing changed.
             Assert.AreEqual(remove_count, to_remove.Count, message + " remove count");

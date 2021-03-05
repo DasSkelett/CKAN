@@ -13,12 +13,12 @@ namespace Tests.Core.Net
     [TestFixture]
     public class NetAsyncModulesDownloader
     {
-        private CKAN.GameInstanceManager      manager;
-        private CKAN.RegistryManager registry_manager;
-        private CKAN.Registry        registry;
-        private DisposableKSP        ksp;
-        private CKAN.IDownloader     async;
-        private NetModuleCache       cache;
+        private CKAN.GameInstanceManager manager;
+        private CKAN.RegistryManager     registry_manager;
+        private CKAN.IRegistry           registry;
+        private DisposableKSP            ksp;
+        private CKAN.IDownloader         async;
+        private NetModuleCache           cache;
 
         private static readonly ILog log = LogManager.GetLogger(typeof (NetAsyncModulesDownloader));
 

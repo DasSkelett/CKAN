@@ -134,6 +134,18 @@ namespace CKAN.Configuration
             return Enumerable.Range(0, InstanceCount).Select(GetInstance).ToList();
         }
 
+        public IDictionary<string, string> Repositories
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+            set
+            {
+                throw new NotImplementedException();
+            }
+        }
+
         public bool TryGetAuthToken(string host, out string token)
         {
             try

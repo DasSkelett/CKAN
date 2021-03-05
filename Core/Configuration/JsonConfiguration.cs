@@ -22,6 +22,7 @@ namespace CKAN.Configuration
             public string Language { get; set; }
             public IList<GameInstanceEntry> GameInstances { get; set; } = new List<GameInstanceEntry>();
             public IDictionary<string, string> AuthTokens { get; set; } = new Dictionary<string, string>();
+            public IDictionary<string, string> Repositories { get; set; } = new Dictionary<string, string>();
         }
 
         public class ConfigConverter : JsonPropertyNamesChangedConverter
@@ -302,6 +303,24 @@ namespace CKAN.Configuration
                 }
 
                 SaveConfig();
+            }
+        }
+
+        public IDictionary<string, string> Repositories
+        {
+            get
+            {
+                lock (_lock)
+                {
+                    return config.Repositories;
+                }
+            }
+            set
+            {
+                lock (_lock)
+                {
+                    config.Repositories = value;
+                }
             }
         }
 

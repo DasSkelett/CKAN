@@ -27,7 +27,7 @@ namespace CKAN.Exporters
             }
         }
 
-        public void Export(IRegistryQuerier registry, Stream stream)
+        public void Export(IRegistry registry, Stream stream)
         {
             using (var writer = new StreamWriter(stream))
             {

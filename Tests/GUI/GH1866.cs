@@ -22,7 +22,7 @@ namespace Tests.GUI
         private GameInstanceManager _manager;
         private FakeConfiguration _config;
         private RegistryManager _registryManager;
-        private Registry _registry;
+        private MonolithicRegistry _registry;
         private ModList _modList;
         private DataGridView _listGui;
 
@@ -55,7 +55,7 @@ namespace Tests.GUI
         {
             _instance = new DisposableKSP();
             _registryManager = RegistryManager.Instance(_instance.KSP);
-            _registry = Registry.Empty();
+            _registry = MonolithicRegistry.Empty();
             _config = new FakeConfiguration(_instance.KSP, _instance.KSP.Name);
             _manager = new GameInstanceManager(
                 new NullUser(),
@@ -68,7 +68,7 @@ namespace Tests.GUI
             // install it and set it as pre-installed
             _manager.Cache.Store(TestData.DogeCoinFlag_101_module(), TestData.DogeCoinFlagZip());
             _registry.RegisterModule(_anyVersionModule, new string[] { }, _instance.KSP, false);
-            _registry.AddAvailable(_anyVersionModule);
+            _registry.AddAvailable(TODO, _anyVersionModule);
 
             HashSet<string> possibleConfigOnlyDirs = null;
             ModuleInstaller.GetInstance(_instance.KSP, _manager.Cache, _manager.User).InstallList(
@@ -80,7 +80,7 @@ namespace Tests.GUI
             );
 
             // this module is not for "any" version, to provide another to sort against
-            _registry.AddAvailable(TestData.kOS_014_module());
+            _registry.AddAvailable(TODO, TestData.kOS_014_module());
 
             // test object
             _modList = new ModList(null);

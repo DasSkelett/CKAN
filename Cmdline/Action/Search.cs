@@ -88,7 +88,7 @@ namespace CKAN.CmdLine
                     user.RaiseMessage("Matching incompatible mods:");
                     foreach (CkanModule mod in matching_incompatible)
                     {
-                        Registry.GetMinMaxVersions(new List<CkanModule> { mod } , out _, out _, out var minKsp, out var maxKsp);
+                        IRegistryHelpers.GetMinMaxVersions(new List<CkanModule> { mod } , out _, out _, out var minKsp, out var maxKsp);
                         string GameVersion = Versioning.GameVersionRange.VersionSpan(ksp.game, minKsp, maxKsp).ToString();
 
                         user.RaiseMessage("* {0} ({1} - {2}) - {3} by {4} - {5}",
@@ -185,7 +185,7 @@ namespace CKAN.CmdLine
         /// <param name="modules">List of strings to convert, format 'identifier' or 'identifier=version'</param>
         public static void AdjustModulesCase(CKAN.GameInstance ksp, List<string> modules)
         {
-            IRegistryQuerier registry = RegistryManager.Instance(ksp).registry;
+            IRegistry registry = RegistryManager.Instance(ksp).registry;
             // Get the list of all compatible and incompatible mods
             List<CkanModule> mods = registry.CompatibleModules(ksp.VersionCriteria()).ToList();
             mods.AddRange(registry.IncompatibleModules(ksp.VersionCriteria()));

@@ -15,7 +15,7 @@ namespace Tests.Core.Registry
     {
         private static string test_registry = TestData.TestRegistry();
         private DisposableKSP temp_ksp;
-        private CKAN.IRegistryQuerier registry;
+        private CKAN.IRegistry registry;
 
         [SetUp]
         public void Setup()

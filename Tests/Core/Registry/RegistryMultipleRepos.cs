@@ -8,8 +8,8 @@ namespace Tests.Core.Registry
         [Test]
         public void Empty()
         {
-            CKAN.Registry registry = CKAN.Registry.Empty();
-            Assert.IsInstanceOf<CKAN.Registry>(registry);
+            CKAN.IRegistry registry = CKAN.MonolithicRegistry.Empty();
+            Assert.IsInstanceOf<CKAN.MonolithicRegistry>(registry);
         }
     }
 }

@@ -16,21 +16,21 @@ namespace Tests.Core.Registry
         private static readonly GameVersionCriteria v0_24_2 = new GameVersionCriteria(GameVersion.Parse("0.24.2"));
         private static readonly GameVersionCriteria v0_25_0 = new GameVersionCriteria (GameVersion.Parse("0.25.0"));
 
-        private CKAN.Registry registry;
+        private CKAN.MonolithicRegistry registry;
 
         [SetUp]
         public void Setup()
         {
             // Provide an empty registry before each test.
-            registry = CKAN.Registry.Empty();
+            registry = CKAN.MonolithicRegistry.Empty();
             Assert.IsNotNull(registry);
         }
 
         [Test]
         public void Empty()
         {
-            CKAN.Registry registry = CKAN.Registry.Empty();
-            Assert.IsInstanceOf<CKAN.Registry>(registry);
+            CKAN.MonolithicRegistry registry = CKAN.MonolithicRegistry.Empty();
+            Assert.IsInstanceOf<CKAN.MonolithicRegistry>(registry);
 
         }
 
@@ -41,7 +41,7 @@ namespace Tests.Core.Registry
             Assert.IsFalse(registry.available_modules.ContainsKey(module.identifier));
 
             // Register
-            registry.AddAvailable(module);
+            registry.AddAvailable(TODO, module);
 
             // Make sure it's now there.
             Assert.IsTrue(registry.available_modules.ContainsKey(module.identifier));
@@ -51,7 +51,7 @@ namespace Tests.Core.Registry
         public void RemoveAvailableByName()
         {
             // Add our module and test it's there.
-            registry.AddAvailable(module);
+            registry.AddAvailable(TODO, module);
             Assert.IsNotNull(registry.LatestAvailable(identifier, v0_24_2));
 
             // Remove it, and make sure it's gone.
@@ -64,7 +64,7 @@ namespace Tests.Core.Registry
         public void RemoveAvailableByModule()
         {
             // Add our module and test it's there.
-            registry.AddAvailable(module);
+            registry.AddAvailable(TODO, module);
             Assert.IsNotNull(registry.LatestAvailable(identifier, v0_24_2));
 
             // Remove it, and make sure it's gone.
@@ -77,7 +77,7 @@ namespace Tests.Core.Registry
         public void LatestAvailable()
         {
 
-            registry.AddAvailable(module);
+            registry.AddAvailable(TODO, module);
 
             // Make sure it's there for 0.24.2
             Assert.AreEqual(module.ToString(), registry.LatestAvailable(identifier, v0_24_2).ToString());
@@ -104,7 +104,7 @@ namespace Tests.Core.Registry
                     { ""name"": ""MakingHistory-DLC"" }
                 ]
             }");
-            registry.AddAvailable(DLCDepender);
+            registry.AddAvailable(TODO, DLCDepender);
 
             // Act
             List<CkanModule> avail = registry.CompatibleModules(v0_24_2).ToList();
@@ -127,7 +127,7 @@ namespace Tests.Core.Registry
                     { ""name"": ""MakingHistory-DLC"" }
                 ]
             }");
-            registry.AddAvailable(DLCDepender);
+            registry.AddAvailable(TODO, DLCDepender);
 
             // Act
             List<CkanModule> avail = registry.CompatibleModules(v0_24_2).ToList();
@@ -151,7 +151,7 @@ namespace Tests.Core.Registry
                     ""version"": ""1.1.0""
                 } ]
             }");
-            registry.AddAvailable(DLCDepender);
+            registry.AddAvailable(TODO, DLCDepender);
 
             // Act
             List<CkanModule> avail = registry.CompatibleModules(v0_24_2).ToList();
@@ -175,7 +175,7 @@ namespace Tests.Core.Registry
                     ""version"": ""1.1.0""
                 } ]
             }");
-            registry.AddAvailable(DLCDepender);
+            registry.AddAvailable(TODO, DLCDepender);
 
             // Act
             List<CkanModule> avail = registry.CompatibleModules(v0_24_2).ToList();
@@ -206,9 +206,9 @@ namespace Tests.Core.Registry
                 ""download"":    ""https://kerbalstuff.com/mod/269/Dogecoin%20Flag/download/1.01"",
                 ""ksp_version"": ""1.8.1""
             }");
-            registry.AddAvailable(modFor161);
-            registry.AddAvailable(modFor173);
-            registry.AddAvailable(modFor181);
+            registry.AddAvailable(TODO, modFor161);
+            registry.AddAvailable(TODO, modFor173);
+            registry.AddAvailable(TODO, modFor181);
 
             // Act
             GameVersionCriteria v173 = new GameVersionCriteria(GameVersion.Parse("1.7.3"));
@@ -225,12 +225,12 @@ namespace Tests.Core.Registry
         {
             // Our registry should work when we initialise it inside our Tx and commit.
 
-            CKAN.Registry reg;
+            CKAN.IRegistry reg;
 
             using (var scope = new TransactionScope())
             {
-                reg = CKAN.Registry.Empty();
-                reg.AddAvailable(module);
+                reg = CKAN.MonolithicRegistry.Empty();
+                reg.AddAvailable(TODO, module);
                 Assert.AreEqual(identifier, reg.LatestAvailable(identifier, null).identifier);
                 scope.Complete();
             }
@@ -244,7 +244,7 @@ namespace Tests.Core.Registry
 
             using (var scope = new TransactionScope())
             {
-                registry.AddAvailable(module);
+                registry.AddAvailable(TODO, module);
                 Assert.AreEqual(module.identifier, registry.LatestAvailable(identifier, null).identifier);
 
                 scope.Complete();
@@ -259,7 +259,7 @@ namespace Tests.Core.Registry
 
             using (var scope = new TransactionScope())
             {
-                registry.AddAvailable(module);
+                registry.AddAvailable(TODO, module);
                 Assert.AreEqual(module.identifier, registry.LatestAvailable(identifier,null).identifier);
 
                 scope.Dispose(); // Rollback, our module should no longer be available.
@@ -279,13 +279,13 @@ namespace Tests.Core.Registry
 
             using (var scope = new TransactionScope())
             {
-                registry.AddAvailable(module);
+                registry.AddAvailable(TODO, module);
 
                 using (var scope2 = new TransactionScope(TransactionScopeOption.RequiresNew))
                 {
                     Assert.Throws<TransactionalKraken>(delegate
                     {
-                        registry.AddAvailable(TestData.DogeCoinFlag_101_module());
+                        registry.AddAvailable(TODO, TestData.DogeCoinFlag_101_module());
                     });
                     scope2.Complete();
                 }
@@ -301,13 +301,13 @@ namespace Tests.Core.Registry
 
             using (var scope = new TransactionScope())
             {
-                registry.AddAvailable(module);
+                registry.AddAvailable(TODO, module);
 
                 using (var scope2 = new TransactionScope())
                 {
                     Assert.DoesNotThrow(delegate
                     {
-                        registry.AddAvailable(TestData.DogeCoinFlag_101_module());
+                        registry.AddAvailable(TODO, TestData.DogeCoinFlag_101_module());
                     });
                     scope2.Complete();
                 }

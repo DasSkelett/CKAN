@@ -3,82 +3,93 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
+using System.Security.Permissions;
 using System.Text.RegularExpressions;
 using System.Transactions;
-using log4net;
-using Newtonsoft.Json;
+using Autofac;
+using CKAN.Configuration;
 using CKAN.Extensions;
 using CKAN.Versioning;
+using log4net;
+using Newtonsoft.Json;
 
 namespace CKAN
 {
     /// <summary>
-    /// This is the CKAN registry. All the modules that we know about or have installed
-    /// are contained in here.
+    /// This is the distributed CKAN registry.
+    /// It stores information about installed and available modules.
+    /// It interfaces with the <see cref="InstancePartialRegistry"/> and all <see cref="LocalRepository"/> active for
+    /// this <see cref="GameInstance"/>.
     /// </summary>
-
-    // TODO: It would be *great* for the registry to have a 'dirty' bit, that records if
-    // anything has changed. But that would involve catching access to a lot of the data
-    // structures we pass back, and we're not doing that yet.
-
-    public class Registry : IEnlistmentNotification, IRegistryQuerier
+    public class DistributedRegistry : IEnlistmentNotification, IRegistry
     {
-        [JsonIgnore] private const int LATEST_REGISTRY_VERSION = 3;
-        [JsonIgnore] private static readonly ILog log = LogManager.GetLogger(typeof (Registry));
+        [JsonIgnore] private const int LATEST_REGISTRY_VERSION = 4;
+        [JsonIgnore] private static readonly ILog log = LogManager.GetLogger(typeof (DistributedRegistry));
 
         [JsonProperty] private int registry_version;
 
-        [JsonProperty("sorted_repositories")]
-        private SortedDictionary<string, Repository> repositories; // name => Repository
+        [JsonProperty] private readonly InstancePartialRegistry instancePartialRegistry;
 
-        // TODO: These may be good as custom types, especially those which process
-        // paths (and flip from absolute to relative, and vice-versa).
-        [JsonProperty] internal Dictionary<string, AvailableModule> available_modules;
-        // name => path
-        [JsonProperty] private  Dictionary<string, string>          installed_dlls;
-        [JsonProperty] private  Dictionary<string, InstalledModule> installed_modules;
-        // filename => module
-        [JsonProperty] private  Dictionary<string, string>          installed_files;
+        [JsonIgnore]
+        private readonly Dictionary<string, AvailableModule> allAvailableModules
+            = new Dictionary<string, AvailableModule>();
 
-        [JsonProperty] public readonly SortedDictionary<string, int> download_counts = new SortedDictionary<string, int>();
+        [JsonIgnore]
+        public Dictionary<string, HashSet<AvailableModule>> providers
+            = new Dictionary<string, HashSet<AvailableModule>>();
 
         public int? DownloadCount(string identifier)
         {
-            int count;
-            if (download_counts.TryGetValue(identifier, out count))
+            foreach (var repo in instancePartialRegistry.GetRepositories())
             {
-                return count;
+                // TODO or add them together?
+                if (repo.download_counts.TryGetValue(identifier, out int count))
+                {
+                    return count;
+                }
             }
             return null;
         }
 
-        public void SetDownloadCounts(SortedDictionary<string, int> counts)
+        public void SetDownloadCounts(Repository repo, SortedDictionary<string, int> counts)
         {
             if (counts != null)
             {
+                var localRepo = instancePartialRegistry.GetRepository(repo.name);
                 foreach (var kvp in counts)
                 {
-                    download_counts[kvp.Key] = kvp.Value;
+                    localRepo.download_counts[kvp.Key] = kvp.Value;
                 }
             }
         }
 
-        // Index of which mods provide what, format:
-        //   providers[provided] = { provider1, provider2, ... }
-        // Built by BuildProvidesIndex, makes LatestAvailableWithProvides much faster.
-        [JsonIgnore]
-        private Dictionary<string, HashSet<AvailableModule>> providers
-            = new Dictionary<string, HashSet<AvailableModule>>();
-
         /// <summary>
-        /// Returns all the activated registries, sorted by priority and name
+        /// Returns all the activated repositories, sorted by priority and name
         /// </summary>
         [JsonIgnore] public SortedDictionary<string, Repository> Repositories
         {
-            get { return this.repositories; }
+            get
+            {
+                return new SortedDictionary<string, Repository>(instancePartialRegistry.GetRepositories().ToDictionary(
+                    repo => repo.sourceRepository.name, repo => repo.sourceRepository
+                ));
+            }
+        }
 
-            // TODO writable only so it can be initialized, better ideas welcome
-            set { this.repositories = value; }
+        public void AddRepository(Repository repo)
+        {
+            // Make sure it's also in the config
+            var config = ServiceLocator.Container.Resolve<IConfiguration>();
+            if (!config.Repositories.ContainsKey(repo.name))
+            {
+                config.Repositories.Add(repo.name, repo.uri.ToString());
+            }
+            instancePartialRegistry.AddRepository(repo);
+        }
+
+        public void ClearRepositories()
+        {
+            instancePartialRegistry.ClearRepositories();
         }
 
         /// <summary>
@@ -86,7 +97,7 @@ namespace CKAN
         /// </summary>
         [JsonIgnore] public IEnumerable<InstalledModule> InstalledModules
         {
-            get { return installed_modules.Values; }
+            get { return instancePartialRegistry.installed_modules.Values; }
         }
 
         /// <summary>
@@ -94,7 +105,7 @@ namespace CKAN
         /// </summary>
         [JsonIgnore] public IEnumerable<string> InstalledDlls
         {
-            get { return installed_dlls.Keys; }
+            get { return instancePartialRegistry.installed_dlls.Keys; }
         }
 
         /// <summary>
@@ -103,7 +114,7 @@ namespace CKAN
         /// </summary>
         public string DllPath(string identifier)
         {
-            return installed_dlls.TryGetValue(identifier, out string path) ? path : null;
+            return instancePartialRegistry.installed_dlls.TryGetValue(identifier, out string path) ? path : null;
         }
 
         /// <summary>
@@ -112,7 +123,7 @@ namespace CKAN
         [JsonIgnore] public IDictionary<string, ModuleVersion> InstalledDlc
         {
             get {
-                return installed_modules.Values
+                return instancePartialRegistry.installed_modules.Values
                     .Where(im => im.Module.IsDLC)
                     .ToDictionary(im => im.Module.identifier, im => im.Module.version);
             }
@@ -127,10 +138,8 @@ namespace CKAN
         /// </returns>
         public IEnumerable<InstalledModule> IncompatibleInstalled(GameVersionCriteria crit)
         {
-            return installed_modules.Values
-                .Where(im => !im.Module.IsCompatibleKSP(crit)
-                    && !(GetModuleByVersion(im.identifier, im.Module.version)?.IsCompatibleKSP(crit)
-                        ?? false));
+            return instancePartialRegistry.installed_modules.Values
+                .Where(im => !im.Module.IsCompatibleKSP(crit));
         }
 
         #region Registry Upgrades
@@ -138,112 +147,37 @@ namespace CKAN
         [OnDeserialized]
         private void DeSerialisationFixes(StreamingContext context)
         {
-            // Our context is our game instance.
+            // Our context is our KSP install.
             GameInstance ksp = (GameInstance)context.Context;
 
             // Older registries didn't have the installed_files list, so we create one
             // if absent.
 
-            if (installed_files == null)
+            if (instancePartialRegistry.installed_files == null)
             {
                 log.Warn("Older registry format detected, adding installed files manifest...");
                 ReindexInstalled();
             }
 
-            // If we have no registry version at all, then we're from the pre-release period.
-            // We would check for a null here, but ints *can't* be null.
-            if (registry_version == 0)
+            registry_version = LATEST_REGISTRY_VERSION;
+
+            // If the LocalRepository pbjects get filled by deserializing JSON, AddAvailable() doesn't get called,
+            // thus allAvailable doesn't get filled
+            foreach (var repo in instancePartialRegistry.GetRepositories())
             {
-                log.Warn("Older registry format detected, normalising paths...");
-
-                var normalised_installed_files = new Dictionary<string, string>();
-
-                foreach (KeyValuePair<string,string> tuple in installed_files)
+                foreach (var availableModule in repo.available_modules)
                 {
-                    string path = CKANPathUtils.NormalizePath(tuple.Key);
-
-                    if (Path.IsPathRooted(path))
+                    if (!allAvailableModules.ContainsKey(availableModule.Key))
                     {
-                        path = ksp.ToRelativeGameDir(path);
-                        normalised_installed_files[path] = tuple.Value;
+                        allAvailableModules[availableModule.Key] = availableModule.Value;
                     }
                     else
                     {
-                        // Already relative.
-                        normalised_installed_files[path] = tuple.Value;
+                        allAvailableModules[availableModule.Key].Merge(availableModule.Value);
                     }
                 }
-
-                installed_files = normalised_installed_files;
-
-                // Now update all our module file manifests.
-
-                foreach (InstalledModule module in installed_modules.Values)
-                {
-                    module.Renormalise(ksp);
-                }
-
-                // Our installed dlls have contained relative paths since forever,
-                // and the next `ckan scan` will fix them anyway. (We can't scan here,
-                // because that needs a registry, and we chicken-egg.)
-
-                log.Warn("Registry upgrade complete");
             }
 
-            // Fix control lock, which previously was indexed with an invalid identifier.
-            if (registry_version < 2)
-            {
-                InstalledModule control_lock_entry;
-                const string old_ident = "001ControlLock";
-                const string new_ident = "ControlLock";
-
-                if (installed_modules.TryGetValue("001ControlLock", out control_lock_entry))
-                {
-                    if (ksp == null)
-                    {
-                        throw new Kraken("Internal bug: No KSP instance provided on registry deserialisation");
-                    }
-
-                    log.WarnFormat("Older registry detected. Reindexing {0} as {1}. This may take a moment.", old_ident, new_ident);
-
-                    // Remove old record.
-                    installed_modules.Remove(old_ident);
-
-                    // Extract the old module metadata
-                    CkanModule control_lock_mod = control_lock_entry.Module;
-
-                    // Change to the correct ident.
-                    control_lock_mod.identifier = new_ident;
-
-                    // Prepare to re-index.
-                    var new_control_lock_installed = new InstalledModule(
-                        ksp,
-                        control_lock_mod,
-                        control_lock_entry.Files,
-                        control_lock_entry.AutoInstalled
-                    );
-
-                    // Re-insert into registry.
-                    installed_modules[new_control_lock_installed.identifier] = new_control_lock_installed;
-
-                    // Re-index files.
-                    ReindexInstalled();
-                }
-            }
-
-            // If we spot a default repo with the old .zip URL, flip it to the new .tar.gz URL
-            // Any other repo we leave *as-is*, even if it's the github meta-repo, as it's been
-            // custom-added by our user.
-
-            Repository default_repo;
-            var oldDefaultRepo = new Uri("https://github.com/KSP-CKAN/CKAN-meta/archive/master.zip");
-            if (repositories != null && repositories.TryGetValue(Repository.default_ckan_repo_name, out default_repo) && default_repo.uri == oldDefaultRepo)
-            {
-                log.InfoFormat("Updating default metadata URL from {0} to {1}", oldDefaultRepo, ksp.game.DefaultRepositoryURL);
-                repositories["default"].uri = ksp.game.DefaultRepositoryURL;
-            }
-
-            registry_version = LATEST_REGISTRY_VERSION;
             BuildProvidesIndex();
         }
 
@@ -253,14 +187,14 @@ namespace CKAN
         /// </summary>
         public void ReindexInstalled()
         {
-            installed_files = new Dictionary<string, string>();
+            instancePartialRegistry.installed_files = new Dictionary<string, string>();
 
-            foreach (InstalledModule module in installed_modules.Values)
+            foreach (InstalledModule module in instancePartialRegistry.installed_modules.Values)
             {
                 foreach (string file in module.Files)
                 {
                     // Register each file we know about as belonging to the given module.
-                    installed_files[file] = module.identifier;
+                    instancePartialRegistry.installed_files[file] = module.identifier;
                 }
             }
         }
@@ -277,37 +211,60 @@ namespace CKAN
 
         #region Constructors
 
-        public Registry(
+        /// <summary>
+        /// Only to create a new, empty registry for new game instances.
+        /// </summary>
+        public DistributedRegistry(
             Dictionary<string, InstalledModule>  installed_modules,
             Dictionary<string, string>           installed_dlls,
-            Dictionary<string, AvailableModule>  available_modules,
+            Dictionary<string ,Dictionary<string, AvailableModule>>  available_modules_per_repo,
             Dictionary<string, string>           installed_files,
-            SortedDictionary<string, Repository> repositories)
+            SortedDictionary<string, Repository> repositories
+        )
         {
             // Is there a better way of writing constructors than this? Srsly?
-            this.installed_modules = installed_modules;
-            this.installed_dlls    = installed_dlls;
-            this.available_modules = available_modules;
-            this.installed_files   = installed_files;
-            this.repositories      = repositories;
             registry_version       = LATEST_REGISTRY_VERSION;
+            instancePartialRegistry = new InstancePartialRegistry();
+            instancePartialRegistry.installed_modules = installed_modules;
+            instancePartialRegistry.installed_dlls    = installed_dlls;
+            instancePartialRegistry.installed_files   = installed_files;
+            instancePartialRegistry.AddRepositories(repositories.Values);
+
+            foreach (var kvp in available_modules_per_repo)
+            {
+                instancePartialRegistry.GetRepository(kvp.Key).available_modules = kvp.Value;
+
+                // Populate the common allAvailableModules.
+                // TODO sort by priority so versions of higher prio repos overwrite lower prio ones.
+                foreach (var avModuleEntry in kvp.Value)
+                {
+                    if (allAvailableModules.TryGetValue(avModuleEntry.Key, out AvailableModule existing))
+                    {
+                        existing.Merge(avModuleEntry.Value);
+                    }
+                }
+            }
+
             BuildProvidesIndex();
         }
 
-        // If deserialsing, we don't want everything put back directly,
-        // thus making sure our version number is preserved, letting us
-        // detect registry version upgrades.
-        [JsonConstructor]
-        private Registry()
-        {
-        }
 
-        public static Registry Empty()
+        /// <summary>
+        /// To be used only by the deserializer.
+        /// If deserializing, we don't want everything put back directly,
+        /// thus making sure our version number is preserved, letting us
+        /// detect registry version upgrades.
+        /// </summary>
+        [JsonConstructor]
+        private DistributedRegistry()
+        { }
+
+        public static DistributedRegistry Empty()
         {
-            return new Registry(
+            return new DistributedRegistry(
                 new Dictionary<string, InstalledModule>(),
                 new Dictionary<string, string>(),
-                new Dictionary<string, AvailableModule>(),
+                new Dictionary<string, Dictionary<string, AvailableModule>>(),
                 new Dictionary<string, string>(),
                 new SortedDictionary<string, Repository>()
             );
@@ -316,6 +273,7 @@ namespace CKAN
         #endregion
 
         #region Transaction Handling
+
 
         // Which transaction we're in
         private string enlisted_tx;
@@ -350,13 +308,11 @@ namespace CKAN
             // Hooray! All Tx participants have signalled they're ready.
             // So we're done, and can clear our resources.
 
-            log.DebugFormat("Committing registry tx {0}", enlisted_tx);
-            lock (txMutex) {
-                enlisted_tx = null;
-                transaction_backup = null;
+            enlisted_tx = null;
+            transaction_backup = null;
 
-                enlistment.Done();
-            }
+            enlistment.Done();
+            log.Debug("Registry transaction committed");
         }
 
         public void Rollback(Enlistment enlistment)
@@ -366,16 +322,14 @@ namespace CKAN
             // In theory, this should put everything back the way it was, overwriting whatever
             // we had previously.
 
-            lock (txMutex) {
-                var options = new JsonSerializerSettings {ObjectCreationHandling = ObjectCreationHandling.Replace};
+            var options = new JsonSerializerSettings {ObjectCreationHandling = ObjectCreationHandling.Replace};
 
-                JsonConvert.PopulateObject(transaction_backup, this, options);
+            JsonConvert.PopulateObject(transaction_backup, this, options);
 
-                enlisted_tx = null;
-                transaction_backup = null;
+            enlisted_tx = null;
+            transaction_backup = null;
 
-                enlistment.Done();
-            }
+            enlistment.Done();
         }
 
         private void SaveState()
@@ -423,16 +377,16 @@ namespace CKAN
 
         #endregion
 
-        public void SetAllAvailable(IEnumerable<CkanModule> newAvail)
+        public void SetAllAvailable(string repo, IEnumerable<CkanModule> newAvail)
         {
             EnlistWithTransaction();
             // Clear current modules
-            available_modules = new Dictionary<string, AvailableModule>();
+            instancePartialRegistry.GetRepository(repo).available_modules = new Dictionary<string, AvailableModule>();
             providers.Clear();
             // Add the new modules
             foreach (CkanModule module in newAvail)
             {
-                AddAvailable(module);
+                AddAvailable(repo, module);
             }
         }
 
@@ -444,30 +398,39 @@ namespace CKAN
         /// </returns>
         public bool HasAnyAvailable()
         {
-            return available_modules.Count > 0;
+            return instancePartialRegistry.GetRepositories().Any(
+                repo => repo.available_modules.Count > 0
+            );
         }
 
         /// <summary>
         /// Mark a given module as available.
         /// </summary>
-        public void AddAvailable(CkanModule module)
+        public void AddAvailable(string repo, CkanModule module)
         {
             EnlistWithTransaction();
 
             var identifier = module.identifier;
+            var repository = instancePartialRegistry.GetRepository(repo);
             // If we've never seen this module before, create an entry for it.
-            if (!available_modules.ContainsKey(identifier))
+            if (!repository.available_modules.ContainsKey(identifier))
             {
                 log.DebugFormat("Adding new available module {0}", identifier);
-                available_modules[identifier] = new AvailableModule(identifier);
+                repository.available_modules[identifier] = new AvailableModule(identifier);
+            }
+            if (!allAvailableModules.ContainsKey(identifier))
+            {
+                log.DebugFormat("Adding new available module {0}", identifier);
+                allAvailableModules[identifier] = new AvailableModule(identifier);
             }
 
             // Now register the actual version that we have.
             // (It's okay to have multiple versions of the same mod.)
 
             log.DebugFormat("Available: {0} version {1}", identifier, module.version);
-            available_modules[identifier].Add(module);
-            BuildProvidesIndexFor(available_modules[identifier]);
+            repository.available_modules[identifier].Add(module);
+            allAvailableModules[identifier].Add(module);
+            BuildProvidesIndexFor(repository.available_modules[identifier]);
             sorter = null;
         }
 
@@ -477,11 +440,18 @@ namespace CKAN
         /// </summary>
         public void RemoveAvailable(string identifier, ModuleVersion version)
         {
+            EnlistWithTransaction();
             AvailableModule availableModule;
-            if (available_modules.TryGetValue(identifier, out availableModule))
+            foreach (var repo in instancePartialRegistry.GetRepositories())
             {
-                EnlistWithTransaction();
-                availableModule.Remove(version);
+                if (repo.available_modules.TryGetValue(identifier, out availableModule))
+                {
+                    availableModule.Remove(version);
+                }
+                if (allAvailableModules.TryGetValue(identifier, out availableModule))
+                {
+                    availableModule.Remove(version);
+                }
             }
         }
 
@@ -494,7 +464,7 @@ namespace CKAN
         }
 
         /// <summary>
-        /// <see cref="IRegistryQuerier.CompatibleModules"/>
+        /// <see cref="IRegistry.CompatibleModules"/>
         /// </summary>
         public IEnumerable<CkanModule> CompatibleModules(GameVersionCriteria ksp_version)
         {
@@ -504,7 +474,7 @@ namespace CKAN
         }
 
         /// <summary>
-        /// <see cref="IRegistryQuerier.IncompatibleModules"/>
+        /// <see cref="IRegistry.IncompatibleModules"/>
         /// </summary>
         public IEnumerable<CkanModule> IncompatibleModules(GameVersionCriteria ksp_version)
         {
@@ -514,22 +484,28 @@ namespace CKAN
         }
 
         /// <summary>
-        /// <see cref="IRegistryQuerier.LatestAvailable" />
+        /// <see cref="IRegistry.LatestAvailable" />
         /// </summary>
         public CkanModule LatestAvailable(
             string module,
             GameVersionCriteria ksp_version,
             RelationshipDescriptor relationship_descriptor = null)
         {
-            // TODO: Consider making this internal, because practically everything should
-            // be calling LatestAvailableWithProvides()
             log.DebugFormat("Finding latest available for {0}", module);
-
-            // TODO: Check user's stability tolerance (stable, unstable, testing, etc)
 
             try
             {
-                return available_modules[module].Latest(ksp_version, relationship_descriptor);
+                List<CkanModule> candidates = new List<CkanModule>();
+                foreach (var repository in instancePartialRegistry.GetRepositories())
+                {
+                    if (repository.available_modules.TryGetValue(module, out var availableModule))
+                    {
+                        var latest = availableModule.Latest(ksp_version, relationship_descriptor);
+                        if (latest != null)
+                            candidates.Add(latest);
+                    }
+                }
+                return CkanModule.LatestOfList(candidates);
             }
             catch (KeyNotFoundException)
             {
@@ -547,14 +523,21 @@ namespace CKAN
         public IEnumerable<CkanModule> AvailableByIdentifier(string identifier)
         {
             log.DebugFormat("Finding all available versions for {0}", identifier);
-            try
+            List<CkanModule> all = new List<CkanModule>();
+            foreach (var repository in instancePartialRegistry.GetRepositories())
             {
-                return available_modules[identifier].AllAvailable();
+                try
+                {
+                    all.AddRange(repository.available_modules[identifier].AllAvailable());
+                }
+                catch (KeyNotFoundException)
+                { }
             }
-            catch (KeyNotFoundException)
-            {
+
+            if (!all.Any())
                 throw new ModuleNotFoundKraken(identifier);
-            }
+
+            return all;
         }
 
         /// <summary>
@@ -566,14 +549,24 @@ namespace CKAN
         /// </returns>
         public string GetAvailableMetadata(string identifier)
         {
-            try
-            {
-                return available_modules[identifier].FullMetadata();
-            }
-            catch
-            {
-                return null;
-            }
+            // AvailableModule mergedModule = null;
+            // foreach (var repo in instancePartialRegistry.GetRepositories())
+            // {
+            //     if (repo.available_modules.TryGetValue(identifier, out var am))
+            //     {
+            //         if (mergedModule == null)
+            //         {
+            //             mergedModule = am;
+            //         }
+            //         else
+            //         {
+            //             mergedModule.Merge(am);
+            //         }
+            //     }
+            // }
+            //
+            // return mergedModule.FullMetadata();
+            return allAvailableModules.TryGetValue(identifier, out var am) ? am.FullMetadata() : null;
         }
 
         /// <summary>
@@ -582,9 +575,7 @@ namespace CKAN
         /// <param name="identifier">Name of mod to check</param>
         public GameVersion LatestCompatibleKSP(string identifier)
         {
-            return available_modules.ContainsKey(identifier)
-                ? available_modules[identifier].LatestCompatibleKSP()
-                : null;
+            return allAvailableModules.TryGetValue(identifier, out var am) ? am.LatestCompatibleKSP() : null;
         }
 
         /// <summary>
@@ -598,7 +589,7 @@ namespace CKAN
         /// <param name="maxKsp">Return parameter for the highest game version</param>
         public static void GetMinMaxVersions(IEnumerable<CkanModule> modVersions,
                 out ModuleVersion minMod, out ModuleVersion maxMod,
-                out GameVersion    minKsp, out GameVersion    maxKsp)
+                out GameVersion   minKsp, out GameVersion   maxKsp)
         {
             minMod = maxMod = null;
             minKsp = maxKsp = null;
@@ -631,7 +622,10 @@ namespace CKAN
         private void BuildProvidesIndex()
         {
             providers.Clear();
-            foreach (AvailableModule am in available_modules.Values)
+            // if (allAvailableModules == null)
+            //     return;
+
+            foreach (AvailableModule am in allAvailableModules.Values)
             {
                 BuildProvidesIndexFor(am);
             }
@@ -658,14 +652,14 @@ namespace CKAN
         {
             tags.Tags.Clear();
             tags.Untagged.Clear();
-            foreach (AvailableModule am in available_modules.Values)
+            foreach (AvailableModule am in allAvailableModules.Values)
             {
                 tags.BuildTagIndexFor(am);
             }
         }
 
         /// <summary>
-        /// <see cref="IRegistryQuerier.LatestAvailableWithProvides" />
+        /// <see cref="IRegistry.LatestAvailableWithProvides" />
         /// </summary>
         public List<CkanModule> LatestAvailableWithProvides(
             string                  identifier,
@@ -696,19 +690,17 @@ namespace CKAN
         /// <summary>
         /// Returns the specified CkanModule with the version specified,
         /// or null if it does not exist.
-        /// <see cref = "IRegistryQuerier.GetModuleByVersion" />
+        /// <see cref = "IRegistry.GetModuleByVersion" />
         /// </summary>
         public CkanModule GetModuleByVersion(string ident, ModuleVersion version)
         {
             log.DebugFormat("Trying to find {0} version {1}", ident, version);
 
-            if (!available_modules.ContainsKey(ident))
+            if (allAvailableModules.TryGetValue(ident, out var am))
             {
-                return null;
+                return am.ByVersion(version);
             }
-
-            AvailableModule available = available_modules[ident];
-            return available.ByVersion(version);
+            return null;
         }
 
         /// <summary>
@@ -737,7 +729,7 @@ namespace CKAN
             foreach (string file in relative_files.Where(file => !Directory.Exists(ksp.ToAbsoluteGameDir(file))))
             {
                 string owner;
-                if (installed_files.TryGetValue(file, out owner))
+                if (instancePartialRegistry.installed_files.TryGetValue(file, out owner))
                 {
                     // Woah! Registering an already owned file? Not cool!
                     // (Although if it existed, we should have thrown a kraken well before this.)
@@ -763,12 +755,12 @@ namespace CKAN
             // is uninstalled.
             foreach (string file in relative_files)
             {
-                installed_files[file] = mod.identifier;
+                instancePartialRegistry.installed_files[file] = mod.identifier;
             }
 
             // Finally, register our module proper.
             var installed = new InstalledModule(ksp, mod, relative_files, autoInstalled);
-            installed_modules.Add(mod.identifier, installed);
+            instancePartialRegistry.installed_modules.Add(mod.identifier, installed);
         }
 
         /// <summary>
@@ -785,7 +777,7 @@ namespace CKAN
 
             var inconsistencies = new List<string>();
 
-            var absolute_files = installed_modules[module].Files.Select(ksp.ToAbsoluteGameDir);
+            var absolute_files = instancePartialRegistry.installed_modules[module].Files.Select(ksp.ToAbsoluteGameDir);
             // Note, this checks to see if a *file* exists; it doesn't
             // trigger on directories, which we allow to still be present
             // (they may be shared by multiple mods.
@@ -804,13 +796,13 @@ namespace CKAN
             }
 
             // Okay, all the files are gone. Let's clear our metadata.
-            foreach (string rel_file in installed_modules[module].Files)
+            foreach (string rel_file in instancePartialRegistry.installed_modules[module].Files)
             {
-                installed_files.Remove(rel_file);
+                instancePartialRegistry.installed_files.Remove(rel_file);
             }
 
             // Bye bye, module, it's been nice having you visit.
-            installed_modules.Remove(module);
+            instancePartialRegistry.installed_modules.Remove(module);
         }
 
         /// <summary>
@@ -826,7 +818,7 @@ namespace CKAN
             string relative_path = ksp.ToRelativeGameDir(absolute_path);
 
             string owner;
-            if (installed_files.TryGetValue(relative_path, out owner))
+            if (instancePartialRegistry.installed_files.TryGetValue(relative_path, out owner))
             {
                 log.InfoFormat(
                     "Not registering {0}, it belongs to {1}",
@@ -838,9 +830,9 @@ namespace CKAN
 
             // http://xkcd.com/208/
             // This regex works great for things like GameData/Foo/Foo-1.2.dll
-            Match match = Regex.Match(relative_path,
-                // DLLs only live in the primary mod directory
-                $"^{ksp.game.PrimaryModDirectoryRelative}/" + @"
+            Match match = Regex.Match(
+                relative_path, @"
+                    ^GameData/            # DLLs only live in GameData
                     (?:.*/)?              # Intermediate paths (ending with /)
                     (?<modname>[^.]+)     # Our DLL name, up until the first dot.
                     .*\.dll$              # Everything else, ending in dll
@@ -859,7 +851,7 @@ namespace CKAN
             log.InfoFormat("Registering {0} from {1}", modName, relative_path);
 
             // We're fine if we overwrite an existing key.
-            installed_dlls[modName] = relative_path;
+            instancePartialRegistry.installed_dlls[modName] = relative_path;
         }
 
         /// <summary>
@@ -868,13 +860,13 @@ namespace CKAN
         public void ClearDlls()
         {
             EnlistWithTransaction();
-            installed_dlls = new Dictionary<string, string>();
+            instancePartialRegistry.installed_dlls = new Dictionary<string, string>();
         }
 
         public void RegisterDlc(string identifier, UnmanagedModuleVersion version)
         {
             CkanModule dlcModule = null;
-            if (available_modules.TryGetValue(identifier, out AvailableModule avail))
+            if (allAvailableModules.TryGetValue(identifier, out AvailableModule avail))
             {
                 dlcModule = avail.ByVersion(version);
             }
@@ -894,7 +886,7 @@ namespace CKAN
                 };
                 dlcModule.CalculateSearchables();
             }
-            installed_modules.Add(
+            instancePartialRegistry.installed_modules.Add(
                 identifier,
                 new InstalledModule(null, dlcModule, new string[] { }, false)
             );
@@ -902,17 +894,17 @@ namespace CKAN
 
         public void ClearDlc()
         {
-            var installedDlcs = installed_modules.Values
+            var installedDlcs = instancePartialRegistry.installed_modules.Values
                 .Where(instMod => instMod.Module.IsDLC)
                 .ToList();
             foreach (var instMod in installedDlcs)
             {
-                installed_modules.Remove(instMod.identifier);
+                instancePartialRegistry.installed_modules.Remove(instMod.identifier);
             }
         }
 
         /// <summary>
-        /// <see cref = "IRegistryQuerier.Installed" />
+        /// <see cref = "IRegistry.Installed" />
         /// </summary>
         public Dictionary<string, ModuleVersion> Installed(bool withProvides = true, bool withDLLs = true)
         {
@@ -921,7 +913,7 @@ namespace CKAN
             if (withDLLs)
             {
                 // Index our DLLs, as much as we dislike them.
-                foreach (var dllinfo in installed_dlls)
+                foreach (var dllinfo in instancePartialRegistry.installed_dlls)
                 {
                     installed[dllinfo.Key] = new UnmanagedModuleVersion(null);
                 }
@@ -938,7 +930,7 @@ namespace CKAN
 
             // Index our installed modules (which may overwrite the installed DLLs and provides)
             // (Includes DLCs)
-            foreach (var modinfo in installed_modules)
+            foreach (var modinfo in instancePartialRegistry.installed_modules)
             {
                 installed[modinfo.Key] = modinfo.Value.Module.version;
             }
@@ -947,13 +939,17 @@ namespace CKAN
         }
 
         /// <summary>
-        /// <see cref = "IRegistryQuerier.InstalledModule" />
+        /// <see cref = "IRegistry.InstalledModule" />
         /// </summary>
         public InstalledModule InstalledModule(string module)
         {
-            return installed_modules.TryGetValue(module, out InstalledModule installedModule)
-                ? installedModule
-                : null;
+            // In theory, someone could then modify the data they get back from
+            // this, so we sea-lion just in case.
+
+            EnlistWithTransaction();
+
+            InstalledModule installedModule;
+            return instancePartialRegistry.installed_modules.TryGetValue(module, out installedModule) ? installedModule : null;
         }
 
         /// <summary>
@@ -965,11 +961,9 @@ namespace CKAN
         /// </returns>
         internal Dictionary<string, ProvidesModuleVersion> ProvidedByInstalled()
         {
-            // TODO: In the future it would be nice to cache this list, and mark it for rebuild
-            // if our installed modules change.
             var installed = new Dictionary<string, ProvidesModuleVersion>();
 
-            foreach (var modinfo in installed_modules)
+            foreach (var modinfo in instancePartialRegistry.installed_modules)
             {
                 CkanModule module = modinfo.Value.Module;
 
@@ -989,7 +983,7 @@ namespace CKAN
         }
 
         /// <summary>
-        /// <see cref = "IRegistryQuerier.InstalledVersion" />
+        /// <see cref = "IRegistry.InstalledVersion" />
         /// </summary>
         public ModuleVersion InstalledVersion(string modIdentifier, bool with_provides=true)
         {
@@ -997,13 +991,13 @@ namespace CKAN
 
             // If it's genuinely installed, return the details we have.
             // (Includes DLCs)
-            if (installed_modules.TryGetValue(modIdentifier, out installedModule))
+            if (instancePartialRegistry.installed_modules.TryGetValue(modIdentifier, out installedModule))
             {
                 return installedModule.Module.version;
             }
 
             // If it's in our autodetected registry, return that.
-            if (installed_dlls.ContainsKey(modIdentifier))
+            if (instancePartialRegistry.installed_dlls.ContainsKey(modIdentifier))
             {
                 return new UnmanagedModuleVersion(null);
             }
@@ -1019,12 +1013,12 @@ namespace CKAN
         }
 
         /// <summary>
-        /// <see cref = "IRegistryQuerier.GetInstalledVersion" />
+        /// <see cref = "IRegistry.GetInstalledVersion" />
         /// </summary>
         public CkanModule GetInstalledVersion(string mod_identifier)
         {
             InstalledModule installedModule;
-            return installed_modules.TryGetValue(mod_identifier, out installedModule)
+            return instancePartialRegistry.installed_modules.TryGetValue(mod_identifier, out installedModule)
                 ? installedModule.Module
                 : null;
         }
@@ -1046,22 +1040,22 @@ namespace CKAN
             }
 
             string fileOwner;
-            return installed_files.TryGetValue(file, out fileOwner) ? fileOwner : null;
+            return instancePartialRegistry.installed_files.TryGetValue(file, out fileOwner) ? fileOwner : null;
         }
 
         /// <summary>
-        /// <see cref="IRegistryQuerier.CheckSanity"/>
+        /// <see cref="IRegistry.CheckSanity"/>
         /// </summary>
         public void CheckSanity()
         {
-            IEnumerable<CkanModule> installed = from pair in installed_modules select pair.Value.Module;
-            SanityChecker.EnforceConsistency(installed, installed_dlls.Keys, InstalledDlc);
+            IEnumerable<CkanModule> installed = from pair in instancePartialRegistry.installed_modules select pair.Value.Module;
+            SanityChecker.EnforceConsistency(installed, instancePartialRegistry.installed_dlls.Keys, InstalledDlc);
         }
 
         public List<string> GetSanityErrors()
         {
-            var installed = from pair in installed_modules select pair.Value.Module;
-            return SanityChecker.ConsistencyErrors(installed, installed_dlls.Keys, InstalledDlc).ToList();
+            var installed = from pair in instancePartialRegistry.installed_modules select pair.Value.Module;
+            return SanityChecker.ConsistencyErrors(installed, instancePartialRegistry.installed_dlls.Keys, InstalledDlc).ToList();
         }
 
         /// <summary>
@@ -1149,8 +1143,8 @@ namespace CKAN
             IEnumerable<CkanModule> modulesToInstall = null
         )
         {
-            var installed = new HashSet<CkanModule>(installed_modules.Values.Select(x => x.Module));
-            return FindReverseDependencies(modulesToRemove, modulesToInstall, installed, new HashSet<string>(installed_dlls.Keys), InstalledDlc);
+            var installed = new HashSet<CkanModule>(instancePartialRegistry.installed_modules.Values.Select(x => x.Module));
+            return FindReverseDependencies(modulesToRemove, modulesToInstall, installed, new HashSet<string>(instancePartialRegistry.installed_dlls.Keys), InstalledDlc);
         }
 
         /// <summary>
@@ -1204,22 +1198,17 @@ namespace CKAN
         public Dictionary<string, List<CkanModule>> GetSha1Index()
         {
             var index = new Dictionary<string, List<CkanModule>>();
-            foreach (var kvp in available_modules)
+            foreach (CkanModule mod in allAvailableModules.Values.SelectMany(am => am.module_version.Values))
             {
-                AvailableModule am = kvp.Value;
-                foreach (var kvp2 in am.module_version)
+                if (mod.download_hash != null)
                 {
-                    CkanModule mod = kvp2.Value;
-                    if (mod.download_hash != null)
+                    if (index.ContainsKey(mod.download_hash.sha1))
                     {
-                        if (index.ContainsKey(mod.download_hash.sha1))
-                        {
-                            index[mod.download_hash.sha1].Add(mod);
-                        }
-                        else
-                        {
-                            index.Add(mod.download_hash.sha1, new List<CkanModule>() {mod});
-                        }
+                        index[mod.download_hash.sha1].Add(mod);
+                    }
+                    else
+                    {
+                        index.Add(mod.download_hash.sha1, new List<CkanModule>() {mod});
                     }
                 }
             }
@@ -1236,23 +1225,18 @@ namespace CKAN
         public Dictionary<string, List<CkanModule>> GetDownloadHashIndex()
         {
             var index = new Dictionary<string, List<CkanModule>>();
-            foreach (var kvp in available_modules)
+            foreach (CkanModule mod in allAvailableModules.Values.SelectMany(am => am.module_version.Values))
             {
-                AvailableModule am = kvp.Value;
-                foreach (var kvp2 in am.module_version)
+                if (mod.download != null)
                 {
-                    CkanModule mod = kvp2.Value;
-                    if (mod.download != null)
+                    string hash = NetFileCache.CreateURLHash(mod.download);
+                    if (index.ContainsKey(hash))
                     {
-                        string hash = NetFileCache.CreateURLHash(mod.download);
-                        if (index.ContainsKey(hash))
-                        {
-                            index[hash].Add(mod);
-                        }
-                        else
-                        {
-                            index.Add(hash, new List<CkanModule>() {mod});
-                        }
+                        index[hash].Add(mod);
+                    }
+                    else
+                    {
+                        index.Add(hash, new List<CkanModule>() {mod});
                     }
                 }
             }
@@ -1269,8 +1253,8 @@ namespace CKAN
             if (!versCrit.Equals(sorter?.CompatibleVersions))
             {
                 sorter = new CompatibilitySorter(
-                    versCrit, available_modules, providers,
-                    installed_modules,
+                    versCrit, allAvailableModules, providers,
+                    instancePartialRegistry.installed_modules,
                     InstalledDlls.ToHashSet(), InstalledDlc
                 );
             }

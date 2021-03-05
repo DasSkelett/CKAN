@@ -58,10 +58,29 @@ namespace CKAN
         {
             if (!module.identifier.Equals(identifier))
                 throw new ArgumentException(
-                    string.Format("This AvailableModule is for tracking {0} not {1}", identifier, module.identifier));
+                    $"This AvailableModule is for tracking {identifier} not {module.identifier}");
 
             log.DebugFormat("Adding {0}", module);
             module_version[module.version] = module;
+        }
+
+        /// <summary>
+        /// Merges two AvailableModules. Overwrites existing versions
+        /// </summary>
+        /// <param name="avModule"></param>
+        /// <exception cref="ArgumentException"></exception>
+        public void Merge(AvailableModule avModule)
+        {
+            if (!avModule.identifier.Equals(identifier))
+                throw new ArgumentException(
+                    $"This AvailableModule is for tracking {identifier} not {avModule.identifier}");
+
+            log.DebugFormat($"Merging AvailableModule {this} with {avModule}");
+
+            foreach (var module in avModule.AllAvailable())
+            {
+                Add(module);
+            }
         }
 
         /// <summary>

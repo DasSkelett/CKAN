@@ -49,7 +49,7 @@ namespace CKAN
             }
         }
 
-        private bool installable(ModuleInstaller installer, CkanModule module, IRegistryQuerier registry)
+        private bool installable(ModuleInstaller installer, CkanModule module, IRegistry registry)
         {
             return module.IsCompatibleKSP(Main.Instance.CurrentInstance.VersionCriteria())
                 && installer.CanInstall(
@@ -61,7 +61,7 @@ namespace CKAN
         private bool allowInstall(CkanModule module)
         {
             GameInstance currentInstance = Main.Instance.Manager.CurrentInstance;
-            IRegistryQuerier registry = RegistryManager.Instance(currentInstance).registry;
+            IRegistry registry = RegistryManager.Instance(currentInstance).registry;
             var installer = ModuleInstaller.GetInstance(
                 currentInstance,
                 Main.Instance.Manager.Cache,
@@ -130,7 +130,7 @@ namespace CKAN
 
                 // Get all the data; can put this in bg if slow
                 GameInstance currentInstance = Main.Instance.Manager.CurrentInstance;
-                IRegistryQuerier registry = RegistryManager.Instance(currentInstance).registry;
+                IRegistry registry = RegistryManager.Instance(currentInstance).registry;
                 var installer = ModuleInstaller.GetInstance(
                     currentInstance,
                     Main.Instance.Manager.Cache,
@@ -176,7 +176,7 @@ namespace CKAN
                     CkanModule module = kvp.Key;
                     ModuleVersion minMod = null, maxMod = null;
                     GameVersion   minKsp = null, maxKsp = null;
-                    Registry.GetMinMaxVersions(new List<CkanModule>() {module}, out minMod, out maxMod, out minKsp, out maxKsp);
+                    IRegistryHelpers.GetMinMaxVersions(new List<CkanModule>() {module}, out minMod, out maxMod, out minKsp, out maxKsp);
                     ListViewItem toRet = new ListViewItem(new string[]
                         {
                             module.version.ToString(),

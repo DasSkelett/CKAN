@@ -293,7 +293,11 @@ namespace CKAN
                     }
 
                     repositories.Add(repo.name, repo);
-                    registry.Repositories = repositories;
+                    registry.ClearRepositories();
+                    foreach (var repository in repositories)
+                    {
+                        registry.AddRepository(repository.Value);
+                    }
 
                     RefreshReposListBox();
                 }

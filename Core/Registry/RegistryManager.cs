@@ -9,6 +9,7 @@ using CKAN.DLC;
 using CKAN.Versioning;
 using log4net;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace CKAN
 {
@@ -30,7 +31,7 @@ namespace CKAN
         // older registry formats.
         private readonly GameInstance ksp;
 
-        public Registry registry;
+        public IRegistry registry;
 
         // We require our constructor to be private so we can
         // enforce this being an instance (via Instance() above)
@@ -284,10 +285,22 @@ namespace CKAN
 
             log.DebugFormat("Trying to load registry from {0}", path);
             string json = File.ReadAllText(path);
-            log.Debug("Registry JSON loaded; parsing...");
-            // A 0-byte registry.json file loads as null without exceptions
-            registry = JsonConvert.DeserializeObject<Registry>(json, settings)
-                ?? Registry.Empty();
+            log.Debug("Registry JSON loaded; checking version...");
+            JObject jObject = JObject.Parse(json);
+            int registryVersion =  (int)jObject["registry_version"];
+            if (registryVersion >= 4)
+            {
+                log.Debug("Parsing registry as DistributedRegistry");
+                registry = JsonConvert.DeserializeObject<DistributedRegistry>(json, settings);
+            }
+            else
+            {
+                log.Debug("Parsing registry as MonolithicRegistry");
+                // A 0-byte registry.json file loads as null without exceptions
+                registry = JsonConvert.DeserializeObject<MonolithicRegistry>(json, settings)
+                           ?? MonolithicRegistry.Empty();
+            }
+
             log.Debug("Registry loaded and parsed");
             ScanDlc();
             log.InfoFormat("Loaded CKAN registry at {0}", path);
@@ -321,7 +334,7 @@ namespace CKAN
         private void Create()
         {
             log.InfoFormat("Creating new CKAN registry at {0}", path);
-            registry = Registry.Empty();
+            registry = DistributedRegistry.Empty();
             Save();
         }
 
@@ -331,11 +344,8 @@ namespace CKAN
 
             if (repositories.Count == 0)
             {
-                repositories.Add(Repository.default_ckan_repo_name,
-                    new Repository(Repository.default_ckan_repo_name, ksp.game.DefaultRepositoryURL));
+                registry.AddRepository(new Repository(Repository.default_ckan_repo_name, ksp.game.DefaultRepositoryURL));
             }
-
-            registry.Repositories = repositories;
         }
 
         private string Serialize()

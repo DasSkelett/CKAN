@@ -32,7 +32,7 @@ namespace CKAN
             this.ToolTip.SetToolTip(ExportModpackButton,     Properties.Resources.EditModpackTooltipExport);
         }
 
-        public void LoadModule(CkanModule module, IRegistryQuerier registry)
+        public void LoadModule(CkanModule module, IRegistry registry)
         {
             this.module = module;
             Util.Invoke(this, () =>
@@ -75,7 +75,7 @@ namespace CKAN
             return task.Task.Result;
         }
 
-        private void LoadRelationships(IRegistryQuerier registry)
+        private void LoadRelationships(IRegistry registry)
         {
             if (module.depends == null)
             {
@@ -121,7 +121,7 @@ namespace CKAN
             RelationshipsListView_ItemSelectionChanged(null, null);
         }
 
-        private void AddGroup(List<RelationshipDescriptor> relationships, ListViewGroup group, IRegistryQuerier registry)
+        private void AddGroup(List<RelationshipDescriptor> relationships, ListViewGroup group, IRegistry registry)
         {
             if (relationships != null)
             {

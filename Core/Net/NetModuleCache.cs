@@ -74,7 +74,7 @@ namespace CKAN
         {
             cache.GetSizeInfo(out numFiles, out numBytes);
         }
-        public void EnforceSizeLimit(long bytes, Registry registry)
+        public void EnforceSizeLimit(long bytes, IRegistry registry)
         {
             cache.EnforceSizeLimit(bytes, registry);
         }

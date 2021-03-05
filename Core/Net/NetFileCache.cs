@@ -300,7 +300,7 @@ namespace CKAN
                 ?? new HashSet<string>();
         }
 
-        public void EnforceSizeLimit(long bytes, Registry registry)
+        public void EnforceSizeLimit(long bytes, IRegistry registry)
         {
             int numFiles;
             long curBytes;

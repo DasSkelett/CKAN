@@ -56,8 +56,8 @@ namespace Tests.GUI
                 };
 
                 var ckan_mod = TestData.FireSpitterModule();
-                var registry = Registry.Empty();
-                registry.AddAvailable(ckan_mod);
+                var registry = MonolithicRegistry.Empty();
+                registry.AddAvailable(TODO, ckan_mod);
                 var item = new ModList(delegate { });
                 Assert.That(item.IsVisible(
                     new GUIMod(ckan_mod, registry, manager.CurrentInstance.VersionCriteria()),
@@ -94,9 +94,9 @@ namespace Tests.GUI
                 ) {
                     CurrentInstance = tidy.KSP
                 };
-                var registry = Registry.Empty();
-                registry.AddAvailable(TestData.FireSpitterModule());
-                registry.AddAvailable(TestData.kOS_014_module());
+                var registry = MonolithicRegistry.Empty();
+                registry.AddAvailable(TODO, TestData.FireSpitterModule());
+                registry.AddAvailable(TODO, TestData.kOS_014_module());
                 var main_mod_list = new ModList(null);
                 var mod_list = main_mod_list.ConstructModList(
                     new List<GUIMod>

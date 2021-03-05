@@ -27,9 +27,9 @@ namespace Tests.GUI
                 ) {
                     CurrentInstance = tidy.KSP
                 };
-                var registry = Registry.Empty();
+                var registry = MonolithicRegistry.Empty();
                 var ckan_mod = TestData.kOS_014_module();
-                registry.AddAvailable(ckan_mod);
+                registry.AddAvailable(TODO, ckan_mod);
                 var mod = new GUIMod(ckan_mod, registry, manager.CurrentInstance.VersionCriteria());
                 Assert.False(mod.IsUpgradeChecked);
 
@@ -47,9 +47,9 @@ namespace Tests.GUI
                 var old_version = generatror.GeneratorRandomModule(version: new ModuleVersion("0.24"), ksp_version: tidy.KSP.Version());
                 var new_version = generatror.GeneratorRandomModule(version: new ModuleVersion("0.25"), ksp_version: tidy.KSP.Version(),
                     identifier:old_version.identifier);
-                var registry = Registry.Empty();
+                var registry = MonolithicRegistry.Empty();
                 registry.RegisterModule(old_version, Enumerable.Empty<string>(), null, false);
-                registry.AddAvailable(new_version);
+                registry.AddAvailable(TODO, new_version);
 
                 var mod = new GUIMod(old_version, registry, tidy.KSP.VersionCriteria());
                 Assert.True(mod.HasUpdate);
@@ -75,9 +75,9 @@ namespace Tests.GUI
                     ""download"":    ""http://www.ksp-ckan.space""
                 }");
 
-                Registry registry = Registry.Empty();
-                registry.AddAvailable(mainVersion);
-                registry.AddAvailable(prevVersion);
+                IRegistry registry = MonolithicRegistry.Empty();
+                registry.AddAvailable(TODO, mainVersion);
+                registry.AddAvailable(TODO, prevVersion);
 
                 // Act
                 GUIMod m = new GUIMod(mainVersion, registry, tidy.KSP.VersionCriteria(), false);

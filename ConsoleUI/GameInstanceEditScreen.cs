@@ -209,7 +209,11 @@ namespace CKAN.ConsoleUI {
         {
             if (repoEditList != null) {
                 // Copy the temp list of repositories to the registry
-                registry.Repositories = repoEditList;
+                registry.ClearRepositories();
+                foreach (var repository in repoEditList)
+                {
+                    registry.AddRepository(repository.Value);
+                }
                 RegistryManager.Instance(ksp).Save();
             }
             if (compatEditList != null) {
@@ -229,7 +233,7 @@ namespace CKAN.ConsoleUI {
         }
 
         private GameInstance ksp;
-        private Registry     registry;
+        private IRegistry    registry;
 
         private SortedDictionary<string, Repository> repoEditList;
         private ConsoleListBox<Repository>           repoList;

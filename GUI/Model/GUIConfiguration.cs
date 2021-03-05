@@ -162,6 +162,12 @@ namespace CKAN
         {
             var serializer = new XmlSerializer(typeof (GUIConfiguration));
 
+            string directoryPath = Path.GetDirectoryName(configuration.path);
+            if (!Directory.Exists(directoryPath))
+            {
+                Directory.CreateDirectory(directoryPath);
+            }
+
             using (var writer = new StreamWriter(configuration.path))
             {
                 serializer.Serialize(writer, configuration);

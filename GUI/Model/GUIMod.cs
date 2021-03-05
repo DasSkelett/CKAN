@@ -127,7 +127,7 @@ namespace CKAN
         /// <param name="registry">CKAN registry object for current game instance</param>
         /// <param name="current_game_version">Current game version</param>
         /// <param name="incompatible">If true, mark this module as incompatible</param>
-        public GUIMod(InstalledModule instMod, IRegistryQuerier registry, GameVersionCriteria current_game_version, bool? incompatible = null)
+        public GUIMod(InstalledModule instMod, IRegistry registry, GameVersionCriteria current_game_version, bool? incompatible = null)
             : this(instMod.Module, registry, current_game_version, incompatible)
         {
             IsInstalled      = true;
@@ -152,7 +152,7 @@ namespace CKAN
         /// <param name="registry">CKAN registry object for current game instance</param>
         /// <param name="current_game_version">Current game version</param>
         /// <param name="incompatible">If true, mark this module as incompatible</param>
-        public GUIMod(CkanModule mod, IRegistryQuerier registry, GameVersionCriteria current_game_version, bool? incompatible = null)
+        public GUIMod(CkanModule mod, IRegistry registry, GameVersionCriteria current_game_version, bool? incompatible = null)
             : this(mod.identifier, registry, current_game_version, incompatible)
         {
             Mod           = mod;
@@ -197,7 +197,7 @@ namespace CKAN
         /// <param name="registry">CKAN registry object for current game instance</param>
         /// <param name="current_game_version">Current game version</param>
         /// <param name="incompatible">If true, mark this module as incompatible</param>
-        public GUIMod(string identifier, IRegistryQuerier registry, GameVersionCriteria current_game_version, bool? incompatible = null)
+        public GUIMod(string identifier, IRegistry registry, GameVersionCriteria current_game_version, bool? incompatible = null)
         {
             Identifier     = identifier;
             IsAutodetected = registry.IsAutodetected(identifier);

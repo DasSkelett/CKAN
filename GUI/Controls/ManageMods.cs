@@ -912,7 +912,7 @@ namespace CKAN
             if (reinstallDialog.ShowYesNoDialog(Main.Instance, confirmationText) == DialogResult.No)
                 return;
 
-            IRegistryQuerier registry = RegistryManager.Instance(Main.Instance.CurrentInstance).registry;
+            IRegistry registry = RegistryManager.Instance(Main.Instance.CurrentInstance).registry;
 
             // Build the list of changes, first the mod to remove:
             List<ModChange> toReinstall = new List<ModChange>()
@@ -947,7 +947,7 @@ namespace CKAN
             var selected = SelectedModule;
             if (selected != null)
             {
-                IRegistryQuerier registry = RegistryManager.Instance(Main.Instance.CurrentInstance).registry;
+                IRegistry registry = RegistryManager.Instance(Main.Instance.CurrentInstance).registry;
                 var allAvail = registry.AvailableByIdentifier(selected.Identifier);
                 foreach (CkanModule mod in allAvail)
                 {
@@ -1041,7 +1041,7 @@ namespace CKAN
 
             Main.Instance.Wait.AddLogMessage(Properties.Resources.MainModListLoadingRegistry);
             GameVersionCriteria versionCriteria = Main.Instance.CurrentInstance.VersionCriteria();
-            IRegistryQuerier registry = RegistryManager.Instance(Main.Instance.CurrentInstance).registry;
+            IRegistry registry = RegistryManager.Instance(Main.Instance.CurrentInstance).registry;
 
             Main.Instance.Wait.AddLogMessage(Properties.Resources.MainModListLoadingInstalled);
             var gui_mods = new HashSet<GUIMod>();
@@ -1142,7 +1142,7 @@ namespace CKAN
                 UpdateAllToolButton.Enabled = has_unheld_updates;
             });
 
-            (registry as Registry)?.BuildTagIndex(mainModList.ModuleTags);
+            registry.BuildTagIndex(mainModList.ModuleTags);
 
             UpdateFilters();
 
@@ -1550,7 +1550,7 @@ namespace CKAN
             Conflicts = null;
         }
 
-        public async Task UpdateChangeSetAndConflicts(GameInstance inst, IRegistryQuerier registry)
+        public async Task UpdateChangeSetAndConflicts(GameInstance inst, IRegistry registry)
         {
             IEnumerable<ModChange> full_change_set = null;
             Dictionary<GUIMod, string> new_conflicts = null;

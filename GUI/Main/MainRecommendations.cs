@@ -31,13 +31,13 @@ namespace CKAN
             ));
         }
 
-        private void AuditRecommendations(IRegistryQuerier registry, GameVersionCriteria versionCriteria)
+        private void AuditRecommendations(IRegistry registry, GameVersionCriteria versionCriteria)
         {
             var installer = ModuleInstaller.GetInstance(CurrentInstance, Manager.Cache, currentUser);
             if (installer.FindRecommendations(
                 registry.InstalledModules.Select(im => im.Module).ToHashSet(),
                 new HashSet<CkanModule>(),
-                registry as Registry,
+                registry,
                 out Dictionary<CkanModule, Tuple<bool, List<string>>> recommendations,
                 out Dictionary<CkanModule, List<string>> suggestions,
                 out Dictionary<CkanModule, HashSet<string>> supporters

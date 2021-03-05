@@ -269,7 +269,7 @@ namespace CKAN
         ///
         /// TODO: The name of this and InstallModule() need to be made more distinctive.
         /// </summary>
-        private void Install(CkanModule module, bool autoInstalled, Registry registry, ref HashSet<string> possibleConfigOnlyDirs, string filename = null)
+        private void Install(CkanModule module, bool autoInstalled, IRegistry registry, ref HashSet<string> possibleConfigOnlyDirs, string filename = null)
         {
             CheckKindInstallationKraken(module);
 
@@ -338,7 +338,7 @@ namespace CKAN
         /// Propagates a CancelledActionKraken if the user decides not to overwite unowned files.
         /// Propagates a FileExistsKraken if we were going to overwrite a file.
         /// </summary>
-        private IEnumerable<string> InstallModule(CkanModule module, string zip_filename, Registry registry, ref HashSet<string> possibleConfigOnlyDirs)
+        private IEnumerable<string> InstallModule(CkanModule module, string zip_filename, IRegistry registry, ref HashSet<string> possibleConfigOnlyDirs)
         {
             CheckKindInstallationKraken(module);
 
@@ -424,7 +424,7 @@ namespace CKAN
         /// <returns>
         /// List of pairs: Key = file, Value = true if identical, false if different
         /// </returns>
-        private IEnumerable<KeyValuePair<InstallableFile, bool>> FindConflictingFiles(ZipFile zip, IEnumerable<InstallableFile> files, Registry registry)
+        private IEnumerable<KeyValuePair<InstallableFile, bool>> FindConflictingFiles(ZipFile zip, IEnumerable<InstallableFile> files, IRegistry registry)
         {
             foreach (InstallableFile file in files)
             {
@@ -706,7 +706,7 @@ namespace CKAN
         /// </summary>
         /// <param name="modName">Identifier of module to uninstall</param>
         /// <param name="possibleConfigOnlyDirs">Directories that the user might want to remove after uninstall</param>
-        private void Uninstall(string modName, ref HashSet<string> possibleConfigOnlyDirs, Registry registry)
+        private void Uninstall(string modName, ref HashSet<string> possibleConfigOnlyDirs, IRegistry registry)
         {
             TxFileManager file_transaction = new TxFileManager();
 
@@ -1184,7 +1184,7 @@ namespace CKAN
         public bool FindRecommendations(
             HashSet<CkanModule> sourceModules,
             HashSet<CkanModule> toInstall,
-            Registry registry,
+            IRegistry registry,
             out Dictionary<CkanModule, Tuple<bool, List<string>>> recommendations,
             out Dictionary<CkanModule, List<string>> suggestions,
             out Dictionary<CkanModule, HashSet<string>> supporters
@@ -1285,7 +1285,7 @@ namespace CKAN
         // Build up the list of who recommends what
         private Dictionary<CkanModule, List<string>> getDependersIndex(
             IEnumerable<CkanModule> sourceModules,
-            IRegistryQuerier        registry,
+            IRegistry        registry,
             HashSet<CkanModule>     toExclude
         )
         {
@@ -1339,7 +1339,7 @@ namespace CKAN
         public bool CanInstall(
             RelationshipResolverOptions opts,
             List<CkanModule>            toInstall,
-            IRegistryQuerier            registry
+            IRegistry                   registry
         )
         {
             string request = toInstall.Select(m => m.identifier).Aggregate((a, b) => $"{a}, {b}");
@@ -1401,7 +1401,7 @@ namespace CKAN
         /// <param name="user">Object for user interaction</param>
         /// <param name="installMod">Function to call to mark a mod for installation</param>
         /// <param name="allowDelete">True to ask user whether to delete imported files, false to leave the files as is</param>
-        public void ImportFiles(HashSet<FileInfo> files, IUser user, Action<CkanModule> installMod, Registry registry, bool allowDelete = true)
+        public void ImportFiles(HashSet<FileInfo> files, IUser user, Action<CkanModule> installMod, IRegistry registry, bool allowDelete = true)
         {
             HashSet<CkanModule> installable = new HashSet<CkanModule>();
             List<FileInfo>      deletable   = new List<FileInfo>();
@@ -1462,7 +1462,7 @@ namespace CKAN
             EnforceCacheSizeLimit(registry);
         }
 
-        private void EnforceCacheSizeLimit(Registry registry)
+        private void EnforceCacheSizeLimit(IRegistry registry)
         {
             // Purge old downloads if we're over the limit
             IConfiguration winReg = ServiceLocator.Container.Resolve<IConfiguration>();

@@ -153,7 +153,7 @@ namespace CKAN.ConsoleUI {
 
         private IEnumerable<ModuleReplacement> AllReplacements(IEnumerable<string> identifiers)
         {
-            IRegistryQuerier registry = RegistryManager.Instance(manager.CurrentInstance).registry;
+            IRegistry registry = RegistryManager.Instance(manager.CurrentInstance).registry;
 
             foreach (string id in identifiers) {
                 ModuleReplacement repl = registry.GetReplacement(

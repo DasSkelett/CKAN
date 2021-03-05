@@ -151,7 +151,7 @@ namespace CKAN.ConsoleUI {
         private void generateList(HashSet<CkanModule> inst)
         {
             if (installer.FindRecommendations(
-                inst, inst, registry as Registry,
+                inst, inst, registry,
                 out Dictionary<CkanModule, Tuple<bool, List<string>>> recommendations,
                 out Dictionary<CkanModule, List<string>> suggestions,
                 out Dictionary<CkanModule, HashSet<string>> supporters
@@ -207,7 +207,7 @@ namespace CKAN.ConsoleUI {
         private HashSet<CkanModule> accepted = new HashSet<CkanModule>();
         private HashSet<string> rejected;
 
-        private IRegistryQuerier registry;
+        private IRegistry registry;
         private GameInstanceManager       manager;
         private ModuleInstaller  installer;
         private ChangePlan       plan;
