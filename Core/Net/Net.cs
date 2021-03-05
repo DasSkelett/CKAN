@@ -194,11 +194,11 @@ namespace CKAN
             }.DownloadAndWait(downloadTargets);
         }
 
-        public static string DownloadText(Uri url, string authToken = "", string mimeType = null)
+        public static string DownloadText(Uri url, string authToken = "", string mimeType = null, int timeout = Timeout.Infinite)
         {
             log.DebugFormat("About to download {0}", url.OriginalString);
 
-            WebClient agent = MakeDefaultHttpClient();
+            WebClient agent = MakeDefaultHttpClient(timeout);
 
             // Check whether to use an auth token for this host
             if (!string.IsNullOrEmpty(authToken)
@@ -351,11 +351,36 @@ namespace CKAN
             }
         }
 
-        private static WebClient MakeDefaultHttpClient()
+        private static WebClient MakeDefaultHttpClient(int timeout = Timeout.Infinite)
         {
-            var client = new WebClient();
+            var client = new TimeoutWebClient(timeout);
             client.Headers.Add("User-Agent", UserAgentString);
             return client;
+        }
+
+        /// <summary>
+        /// A WebClient that times out after a specified amount of time in milliseconds, 600000 (=60 seconds) by default
+        /// </summary>
+        private sealed class TimeoutWebClient : WebClient
+        {
+            public int Timeout { get; set; }
+
+            public TimeoutWebClient() : this (System.Threading.Timeout.Infinite) { }
+
+            public TimeoutWebClient(int timeout)
+            {
+                Timeout = timeout;
+            }
+
+            protected override WebRequest GetWebRequest(Uri address)
+            {
+                var request = base.GetWebRequest(address);
+                if (request != null)
+                {
+                    request.Timeout = this.Timeout;
+                }
+                return request;
+            }
         }
 
         // HACK: The ancient WebClient doesn't support setting the request type to HEAD and WebRequest doesn't support
