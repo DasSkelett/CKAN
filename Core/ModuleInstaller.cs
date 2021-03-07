@@ -134,7 +134,7 @@ namespace CKAN
 
         public void InstallList(List<string> modules, RelationshipResolverOptions options, RegistryManager registry_manager, ref HashSet<string> possibleConfigOnlyDirs, IDownloader downloader = null)
         {
-            var resolver = new RelationshipResolver(modules, null, options, registry_manager.registry, ksp.VersionCriteria());
+            var resolver = new RelationshipResolver(modules, null, null, options, registry_manager.registry, ksp.VersionCriteria());
             // Only pass the CkanModules of the parameters, so we can tell which are auto
             InstallList(resolver.ModList().Where(m => resolver.ReasonFor(m) is SelectionReason.UserRequested).ToList(), options, registry_manager, ref possibleConfigOnlyDirs, downloader);
         }
@@ -150,7 +150,7 @@ namespace CKAN
         public void InstallList(ICollection<CkanModule> modules, RelationshipResolverOptions options, RegistryManager registry_manager, ref HashSet<string> possibleConfigOnlyDirs, IDownloader downloader = null, bool ConfirmPrompt = true)
         {
             // TODO: Break this up into smaller pieces! It's huge!
-            var resolver = new RelationshipResolver(modules, null, options, registry_manager.registry, ksp.VersionCriteria());
+            var resolver = new RelationshipResolver(modules, null, null, options, registry_manager.registry, ksp.VersionCriteria());
             var modsToInstall = resolver.ModList().ToList();
             List<CkanModule> downloads = new List<CkanModule>();
 
@@ -947,11 +947,12 @@ namespace CKAN
         /// </summary>
         public void Upgrade(IEnumerable<string> identifiers, IDownloader netAsyncDownloader, ref HashSet<string> possibleConfigOnlyDirs, RegistryManager registry_manager, bool enforceConsistency = true)
         {
-            // When upgrading, we are removing these mods first and install them again afterwards (but in different versions).
-            // So the list of identifiers of modulesToRemove and modulesToInstall is the same,
-            // RelationshipResolver take care of finding the right CkanModule for each identifier.
+            // When upgrading, we are removing these mods (or DLLs) first and install them again afterwards (but in different versions).
+            // So the list of identifiers of modulesToRemove and dllsToRemove and modulesToInstall is the same,
+            // RelationshipResolver take care of finding the right CkanModule for each identifier .
             List<string> identifierList = identifiers.ToList();
             var resolver = new RelationshipResolver(
+                identifierList,
                 identifierList,
                 identifierList,
                 RelationshipResolver.DependsOnlyOpts(),
@@ -975,6 +976,7 @@ namespace CKAN
                 var resolver = new RelationshipResolver(
                     modules,
                     modules.Select(m => registry_manager.registry.InstalledModule(m.identifier)?.Module).Where(m => m != null),
+                    modules.Where(m => registry_manager.registry.InstalledDlls.Contains(m.identifier)).Select(m => m.identifier),
                     RelationshipResolver.DependsOnlyOpts(),
                     registry_manager.registry,
                     ksp.VersionCriteria()
@@ -1143,7 +1145,12 @@ namespace CKAN
                     }
                 }
             }
-            var resolver = new RelationshipResolver(modsToInstall, null, options, registry_manager.registry, ksp.VersionCriteria());
+            // TODO shouldn't we tell the resolver what we're about to remove as well?
+            var resolver = new RelationshipResolver(
+                modsToInstall,
+                modsToRemove.Select(im => im.Module),
+                null, options, registry_manager.registry, ksp.VersionCriteria()
+            );
             var resolvedModsToInstall = resolver.ModList().ToList();
             AddRemove(
                 ref possibleConfigOnlyDirs,
@@ -1345,9 +1352,14 @@ namespace CKAN
             string request = toInstall.Select(m => m.identifier).Aggregate((a, b) => $"{a}, {b}");
             try
             {
+                // The following gets passed to the RelationshipResolver:
+                // 1) The mods we're going to install
+                // 2) The currently installed versions of these mods (possible none)
+                // 3) The currently installed DLL name if we're converting an AD mod (possible none)
                 RelationshipResolver resolver = new RelationshipResolver(
                     toInstall,
                     toInstall.Select(m => registry.InstalledModule(m.identifier)?.Module).Where(m => m != null),
+                    toInstall.Where(m => registry.InstalledDlls.Contains(m.identifier)).Select(m => m.identifier),
                     opts, registry, ksp.VersionCriteria()
                 );
 

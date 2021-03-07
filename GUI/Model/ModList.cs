@@ -117,6 +117,7 @@ namespace CKAN
         {
             var modules_to_install = new HashSet<CkanModule>();
             var modules_to_remove = new HashSet<CkanModule>();
+            var dlls_to_remove = new HashSet<string>();
 
             foreach (var change in changeSet)
             {
@@ -125,6 +126,17 @@ namespace CKAN
                     case GUIModChangeType.None:
                         break;
                     case GUIModChangeType.Update:
+                        var installedModule = registry.InstalledModule(change.Mod.identifier);
+                        if (installedModule != null)
+                        {
+                            modules_to_remove.Add(installedModule.Module);
+                        }
+                        else
+                        {
+                            dlls_to_remove.Add(registry.InstalledDlls.FirstOrDefault(dll => dll == change.Mod.identifier));
+                        }
+                        modules_to_install.Add(change.Mod);
+                        break;
                     case GUIModChangeType.Install:
                         modules_to_install.Add(change.Mod);
                         break;
@@ -165,6 +177,7 @@ namespace CKAN
                     modules_to_remove.Add(module_by_version);
                 }
             }
+            // TODO this seems to include auto-installed modules in modules_to_remove where there's a new dependent mod about to be installed
             foreach (var im in registry.FindRemovableAutoInstalled(
                 registry.InstalledModules.Where(im => !modules_to_remove.Any(m => m.identifier == im.identifier) || modules_to_install.Any(m => m.identifier == im.identifier))
             ))
@@ -181,6 +194,7 @@ namespace CKAN
             var resolver = new RelationshipResolver(
                 modules_to_install,
                 modules_to_remove,
+                dlls_to_remove,
                 opts, registry, version);
             changeSet.UnionWith(
                 resolver.ModList()
@@ -454,6 +468,7 @@ namespace CKAN
                         modules_to_remove.Add(change.Mod);
                         break;
                     case GUIModChangeType.Update:
+                        // TODO shouldn't we add the new version to modules_to_install, and the old one to modules_to_remove?
                         break;
                     case GUIModChangeType.Replace:
                         ModuleReplacement repl = registry.GetReplacement(change.Mod, ksp_version);
@@ -471,6 +486,7 @@ namespace CKAN
             var resolver = new RelationshipResolver(
                 modules_to_install.Except(modules_to_remove),
                 modules_to_remove,
+                null,
                 options, registry, ksp_version
             );
             return resolver.ConflictList.ToDictionary(

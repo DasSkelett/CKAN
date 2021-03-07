@@ -192,9 +192,14 @@ namespace CKAN
             // All quick checks pass. Now check the relationships.
             try
             {
+                // The following gets passed to the RelationshipResolver:
+                // 1) The mod version we're going to install
+                // 2) The currently installed version of the mod (possible none)
+                // 3) The currently installed DLL name if we're converting an AD mod (possible none, mutually exclusive with 2)
                 RelationshipResolver resolver = new RelationshipResolver(
                     new CkanModule[] { newest_version },
-                    new CkanModule[] { querier.InstalledModule(identifier).Module },
+                    new CkanModule[] { querier.InstalledModule(identifier)?.Module }.Where(m => m != null),
+                    new string[] { querier.InstalledDlls.FirstOrDefault(dll => dll == identifier) }.Where(dll => dll != null),
                     new RelationshipResolverOptions()
                     {
                         with_recommends = false,

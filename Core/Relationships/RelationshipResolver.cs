@@ -102,6 +102,7 @@ namespace CKAN
         private readonly GameVersionCriteria GameVersion;
         private readonly RelationshipResolverOptions options;
         private readonly HashSet<CkanModule> installed_modules;
+        private readonly HashSet<string> installed_dlls;
 
         /// <summary>
         /// Creates a new Relationship resolver.
@@ -116,6 +117,7 @@ namespace CKAN
             this.options = options;
 
             installed_modules = new HashSet<CkanModule>(registry.InstalledModules.Select(i_module => i_module.Module));
+            installed_dlls = new HashSet<string>(registry.InstalledDlls);
             var installed_relationship = new SelectionReason.Installed();
             foreach (var module in installed_modules)
             {
@@ -131,7 +133,8 @@ namespace CKAN
         /// <param name="options">Options for the RelationshipResolver</param>
         /// <param name="registry">CKAN registry object for current game instance</param>
         /// <param name="GameVersion">The current KSP version criteria to consider</param>
-        public RelationshipResolver(IEnumerable<string> modulesToInstall, IEnumerable<string> modulesToRemove, RelationshipResolverOptions options, IRegistryQuerier registry,
+        public RelationshipResolver(IEnumerable<string> modulesToInstall, IEnumerable<string> modulesToRemove,
+            IEnumerable<string> dllsToRemove, RelationshipResolverOptions options, IRegistryQuerier registry,
             GameVersionCriteria GameVersion) :
                 this(
                     modulesToInstall?.Select(mod => TranslateModule(mod, options, registry, GameVersion)),
@@ -143,6 +146,7 @@ namespace CKAN
                         })
                         .Where(identifier => registry.InstalledModule(identifier) != null)
                         .Select(identifier => registry.InstalledModule(identifier).Module),
+                    dllsToRemove,
                     options, registry, GameVersion)
         {
             // Does nothing, just calls the other overloaded constructor
@@ -183,16 +187,22 @@ namespace CKAN
         /// </summary>
         /// <param name="modulesToInstall">Modules to install</param>
         /// <param name="modulesToRemove">Modules to remove</param>
+        /// <param name="modulesToRemove">Dlls to remove</param>
         /// <param name="options">Options for the RelationshipResolver</param>
         /// <param name="registry">CKAN registry object for current game instance</param>
         /// <param name="GameVersion">The current KSP version criteria to consider</param>
-        public RelationshipResolver(IEnumerable<CkanModule> modulesToInstall, IEnumerable<CkanModule> modulesToRemove, RelationshipResolverOptions options, IRegistryQuerier registry,
+        public RelationshipResolver(IEnumerable<CkanModule> modulesToInstall, IEnumerable<CkanModule> modulesToRemove,
+            IEnumerable<string> dllsToRemove, RelationshipResolverOptions options, IRegistryQuerier registry,
             GameVersionCriteria GameVersion)
             : this(options, registry, GameVersion)
         {
             if (modulesToRemove != null)
             {
                 RemoveModsFromInstalledList(modulesToRemove);
+            }
+            if (dllsToRemove != null)
+            {
+                RemoveDllsFromInstalledList(dllsToRemove);
             }
             if (modulesToInstall != null)
             {
@@ -281,7 +291,7 @@ namespace CKAN
                 // Finally, let's do a sanity check that our solution is actually sane.
                 SanityChecker.EnforceConsistency(
                     modlist.Values.Concat(installed_modules),
-                    registry.InstalledDlls,
+                    installed_dlls,
                     registry.InstalledDlc
                 );
             }
@@ -313,6 +323,19 @@ namespace CKAN
             {
                 installed_modules.Remove(module);
                 conflicts.RemoveAll(kvp => kvp.Key.Equals(module) || kvp.Value.Equals(module));
+            }
+        }
+
+        /// <summary>
+        /// Removes mods from the list of installed DLLs. Intended to be used for cases
+        /// in which the DLL is to be replaced/updated to a CKAN-managed mod.
+        /// </summary>
+        /// <param name="mods">The mods to remove.</param>
+        private void RemoveDllsFromInstalledList(IEnumerable<string> dlls)
+        {
+            foreach (var dll in dlls)
+            {
+                installed_dlls.Remove(dll);
             }
         }
 
@@ -398,7 +421,7 @@ namespace CKAN
                 // If it's already installed, skip.
                 if (descriptor.MatchesAny(
                     installed_modules,
-                    registry.InstalledDlls.ToHashSet(),
+                    installed_dlls,
                     registry.InstalledDlc))
                 {
                     continue;

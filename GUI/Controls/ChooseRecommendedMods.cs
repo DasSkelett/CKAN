@@ -84,7 +84,7 @@ namespace CKAN
                 MarkConflicts();
             }
         }
-        
+
         private void MarkConflicts()
         {
             try
@@ -136,6 +136,7 @@ namespace CKAN
                     .Concat(toInstall)
                     .Distinct(),
                 toUninstall,
+                null,
                 conflictOptions, registry, GameVersion
             ).ConflictList;
         }
