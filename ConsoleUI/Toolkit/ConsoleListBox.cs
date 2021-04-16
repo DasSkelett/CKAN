@@ -3,7 +3,8 @@ using System.Text.RegularExpressions;
 using System.ComponentModel;
 using System.Collections.Generic;
 
-namespace CKAN.ConsoleUI.Toolkit {
+namespace CKAN.ConsoleUI.Toolkit
+{
 
     /// <summary>
     /// Scrollable list of objects

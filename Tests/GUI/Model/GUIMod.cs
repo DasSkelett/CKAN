@@ -3,7 +3,6 @@ using System.Linq;
 using CKAN;
 using CKAN.Versioning;
 using NUnit.Framework;
-using Tests.Core;
 using Tests.Core.Configuration;
 using Tests.Data;
 

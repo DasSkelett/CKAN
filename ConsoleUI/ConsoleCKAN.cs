@@ -2,7 +2,8 @@ using System;
 using System.Linq;
 using CKAN.ConsoleUI.Toolkit;
 
-namespace CKAN.ConsoleUI {
+namespace CKAN.ConsoleUI
+{
 
     /// <summary>
     /// Class that runs the console UI in its constructor

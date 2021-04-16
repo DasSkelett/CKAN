@@ -1,6 +1,6 @@
 using System;
 using System.Linq;
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using log4net;
 using CKAN.Versioning;
 

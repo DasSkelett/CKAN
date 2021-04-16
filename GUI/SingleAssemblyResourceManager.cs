@@ -1,7 +1,6 @@
 using System.IO;
 using System.Globalization;
 using System.Resources;
-using System.Collections;
 using System.Reflection;
 using System.Collections.Generic;
 

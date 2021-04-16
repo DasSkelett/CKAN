@@ -3,15 +3,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
-using Autofac;
 using ChinhDo.Transactions.FileManager;
 using ICSharpCode.SharpZipLib.GZip;
 using ICSharpCode.SharpZipLib.Tar;
 using ICSharpCode.SharpZipLib.Zip;
 using log4net;
 using Newtonsoft.Json;
-using CKAN.GameVersionProviders;
 using CKAN.Versioning;
 
 namespace CKAN

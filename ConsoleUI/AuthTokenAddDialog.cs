@@ -3,7 +3,8 @@ using Autofac;
 using CKAN.ConsoleUI.Toolkit;
 using CKAN.Configuration;
 
-namespace CKAN.ConsoleUI {
+namespace CKAN.ConsoleUI
+{
 
     /// <summary>
     /// Popup for adding a new authentication token.

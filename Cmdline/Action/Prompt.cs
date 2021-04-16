@@ -1,7 +1,4 @@
 using System;
-using CommandLine;
-using CommandLine.Text;
-using log4net;
 
 namespace CKAN.CmdLine
 {

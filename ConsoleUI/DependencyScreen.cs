@@ -4,7 +4,8 @@ using System.ComponentModel;
 using System.Collections.Generic;
 using CKAN.ConsoleUI.Toolkit;
 
-namespace CKAN.ConsoleUI {
+namespace CKAN.ConsoleUI
+{
 
     /// <summary>
     /// Screen for letting the user choose additional packages to install

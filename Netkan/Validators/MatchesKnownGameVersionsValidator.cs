@@ -1,6 +1,4 @@
 using System.Collections.Generic;
-using Autofac;
-using CKAN.GameVersionProviders;
 using CKAN.Versioning;
 using CKAN.Games;
 using CKAN.NetKAN.Model;

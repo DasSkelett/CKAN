@@ -1,9 +1,9 @@
-using System;
 using System.Collections.Generic;
 using CKAN.ConsoleUI.Toolkit;
 using CKAN.Games;
 
-namespace CKAN.ConsoleUI {
+namespace CKAN.ConsoleUI
+{
 
     /// <summary>
     /// Base class for screens that create or edit Repository entries

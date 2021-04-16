@@ -2,7 +2,8 @@ using System;
 using System.ComponentModel;
 using System.Collections.Generic;
 
-namespace CKAN.ConsoleUI.Toolkit {
+namespace CKAN.ConsoleUI.Toolkit
+{
 
     /// <summary>
     /// Dialog showing a message and letting the user choose an option from a list box

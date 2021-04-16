@@ -4,7 +4,6 @@ using System.Linq;
 using System.IO;
 using Microsoft.Win32;
 using log4net;
-using Newtonsoft.Json;
 
 namespace CKAN.Configuration
 {

@@ -8,8 +8,6 @@ using CKAN.Versioning;
 
 namespace CKAN
 {
-    using ModChanges = List<ModChange>;
-
     public partial class Main
     {
         private void ChooseRecommendedMods_OnSelectedItemsChanged(ListView.SelectedListViewItemCollection items)

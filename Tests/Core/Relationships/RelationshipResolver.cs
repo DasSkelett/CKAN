@@ -6,7 +6,6 @@ using NUnit.Framework;
 using Tests.Data;
 using System.IO;
 using CKAN.Versioning;
-using Tests.Core.Types;
 using RelationshipDescriptor = CKAN.RelationshipDescriptor;
 
 namespace Tests.Core.Relationships

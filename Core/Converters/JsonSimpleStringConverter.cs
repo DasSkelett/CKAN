@@ -1,7 +1,8 @@
 using System;
 using Newtonsoft.Json;
 
-namespace CKAN {
+namespace CKAN
+{
     // A lovely class for serialising things that can be converted
     // to simple strings and back.
 

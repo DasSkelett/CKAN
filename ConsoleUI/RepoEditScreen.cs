@@ -2,7 +2,8 @@ using System;
 using System.Collections.Generic;
 using CKAN.Games;
 
-namespace CKAN.ConsoleUI {
+namespace CKAN.ConsoleUI
+{
 
     /// <summary>
     /// Screen for editing an existing Repository entry

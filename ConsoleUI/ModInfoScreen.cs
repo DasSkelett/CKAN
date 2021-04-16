@@ -1,12 +1,11 @@
 using System;
-using System.Diagnostics;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 using System.Linq;
 using CKAN.Versioning;
 using CKAN.ConsoleUI.Toolkit;
 
-namespace CKAN.ConsoleUI {
+namespace CKAN.ConsoleUI
+{
 
     /// <summary>
     /// Screen showing details about a mod

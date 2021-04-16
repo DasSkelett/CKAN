@@ -1,6 +1,7 @@
 using System.Text;
 
-namespace CKAN.ConsoleUI.Toolkit {
+namespace CKAN.ConsoleUI.Toolkit
+{
 
     /// <summary>
     /// Glyphs for drawing text UIs

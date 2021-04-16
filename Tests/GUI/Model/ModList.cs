@@ -1,14 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading.Tasks;
 using CKAN;
-using CKAN.Versioning;
 using NUnit.Framework;
 using Tests.Core.Configuration;
 using Tests.Data;
-using ModuleInstaller = CKAN.ModuleInstaller;
 
 namespace Tests.GUI
 {

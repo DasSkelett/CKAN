@@ -5,7 +5,8 @@ using CKAN.ConsoleUI.Toolkit;
 using Autofac;
 using CKAN.Configuration;
 
-namespace CKAN.ConsoleUI {
+namespace CKAN.ConsoleUI
+{
 
     /// <summary>
     /// Screen for display and editing of authentication tokens.

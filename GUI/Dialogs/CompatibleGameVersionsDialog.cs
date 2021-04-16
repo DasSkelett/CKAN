@@ -2,9 +2,7 @@ using System;
 using System.Linq;
 using System.Windows.Forms;
 using System.Collections.Generic;
-using Autofac;
 using CKAN.Versioning;
-using CKAN.GameVersionProviders;
 
 namespace CKAN
 {

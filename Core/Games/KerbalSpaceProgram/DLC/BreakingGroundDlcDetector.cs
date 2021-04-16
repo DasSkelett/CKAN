@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using CKAN.Games;
+﻿using CKAN.Games;
 
 namespace CKAN.DLC
 {

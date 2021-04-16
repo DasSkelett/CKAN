@@ -1,7 +1,8 @@
 using System.IO;
 using CKAN.ConsoleUI.Toolkit;
 
-namespace CKAN.ConsoleUI {
+namespace CKAN.ConsoleUI
+{
 
     /// <summary>
     /// Base class for screens adding/editing game instances

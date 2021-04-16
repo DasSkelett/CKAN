@@ -9,7 +9,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 using CKAN.Versioning;
-using CKAN.Extensions;
 using CKAN.NetKAN.Sources.Avc;
 using CKAN.Games;
 

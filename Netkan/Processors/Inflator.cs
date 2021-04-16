@@ -5,7 +5,6 @@ using System.Linq;
 using Autofac;
 using log4net;
 using CKAN.Configuration;
-using CKAN.Versioning;
 using CKAN.NetKAN.Model;
 using CKAN.NetKAN.Services;
 using CKAN.NetKAN.Transformers;

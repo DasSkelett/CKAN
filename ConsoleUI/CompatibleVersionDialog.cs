@@ -3,11 +3,10 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using CKAN.Versioning;
 using CKAN.Games;
-using CKAN.GameVersionProviders;
 using CKAN.ConsoleUI.Toolkit;
-using Autofac;
 
-namespace CKAN.ConsoleUI {
+namespace CKAN.ConsoleUI
+{
 
     /// <summary>
     /// Popup letting user pick a game version from a list or enter it manually

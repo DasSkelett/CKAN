@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 using CKAN.Games;
 
-namespace CKAN.ConsoleUI {
+namespace CKAN.ConsoleUI
+{
 
     /// <summary>
     /// Screen for creating a new Repository entry

@@ -5,7 +5,8 @@ using System.ComponentModel;
 using CKAN.Versioning;
 using CKAN.ConsoleUI.Toolkit;
 
-namespace CKAN.ConsoleUI {
+namespace CKAN.ConsoleUI
+{
 
     /// <summary>
     /// Object representing list of available game instances.

@@ -5,7 +5,6 @@ using System.Text.RegularExpressions;
 using log4net;
 using Newtonsoft.Json.Linq;
 using CKAN.NetKAN.Model;
-using Newtonsoft.Json;
 
 namespace CKAN.NetKAN.Transformers
 {

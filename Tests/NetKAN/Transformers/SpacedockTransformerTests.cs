@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq;
 using CKAN.Versioning;
-using CKAN.NetKAN;
 using CKAN.NetKAN.Model;
 using CKAN.NetKAN.Sources.Spacedock;
 using CKAN.NetKAN.Transformers;

@@ -2,7 +2,8 @@ using System;
 using System.IO;
 using CKAN.ConsoleUI.Toolkit;
 
-namespace CKAN.ConsoleUI {
+namespace CKAN.ConsoleUI
+{
 
     /// <summary>
     /// Screen for adding a new game instance

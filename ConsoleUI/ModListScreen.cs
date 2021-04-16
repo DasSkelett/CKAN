@@ -5,7 +5,8 @@ using System.ComponentModel;
 using CKAN.ConsoleUI.Toolkit;
 using System.Linq;
 
-namespace CKAN.ConsoleUI {
+namespace CKAN.ConsoleUI
+{
 
     /// <summary>
     /// Screen listing mods available for a given install

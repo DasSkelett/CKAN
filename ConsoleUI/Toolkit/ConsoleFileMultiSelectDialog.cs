@@ -3,7 +3,8 @@ using System.IO;
 using System.Collections.Generic;
 using System.ComponentModel;
 
-namespace CKAN.ConsoleUI.Toolkit {
+namespace CKAN.ConsoleUI.Toolkit
+{
 
     /// <summary>
     /// A popup to let the user select multiple files.

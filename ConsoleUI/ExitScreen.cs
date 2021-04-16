@@ -1,7 +1,8 @@
 using System;
 using CKAN.ConsoleUI.Toolkit;
 
-namespace CKAN.ConsoleUI {
+namespace CKAN.ConsoleUI
+{
 
     /// <summary>
     /// Not inheriting from ConsoleScreen because we don't

@@ -1,7 +1,7 @@
 using System;
-using CKAN.ConsoleUI.Toolkit;
 
-namespace CKAN.ConsoleUI.Toolkit {
+namespace CKAN.ConsoleUI.Toolkit
+{
 
     /// <summary>
     /// Object representing an editable text field

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.Diagnostics;
-using System.Net;
 using System.Reflection;
 using log4net;
 using Newtonsoft.Json;
